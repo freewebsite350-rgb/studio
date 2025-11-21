@@ -11,6 +11,7 @@ let app: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
 
+// This component is the single source of truth for Firebase initialization on the client.
 export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
     const [firebaseInstances, setFirebaseInstances] = useState<{
         app: FirebaseApp;
@@ -28,6 +29,7 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
             appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
         };
 
+        // Initialize Firebase only once
         if (!getApps().length) {
             app = initializeApp(firebaseConfig);
         } else {
@@ -40,10 +42,11 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
         setFirebaseInstances({ app, auth, firestore });
     }, []);
 
+    // Return a loading state or null until Firebase is initialized.
     if (!firebaseInstances) {
-        // You can return a loading spinner or null here
         return null;
     }
 
+    // Once initialized, provide the instances to the rest of the app.
     return <FirebaseProvider instances={firebaseInstances}>{children}</FirebaseProvider>
 }
