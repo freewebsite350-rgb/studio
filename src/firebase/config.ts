@@ -1,4 +1,6 @@
 
+// This file is no longer the primary source for the config object at runtime,
+// but is kept for reference and for other potential non-runtime scripts.
 export const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
