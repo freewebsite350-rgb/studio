@@ -9,9 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import {generateStream} from '@genkit-ai/google-genai';
 import { PolicyQaOutput } from './policy-qa-flow';
-import { getFirestore } from 'firebase-admin/firestore';
 import { adminDb } from '@/firebase/admin';
 
 
@@ -53,40 +51,39 @@ export async function getAdminPolicyAnswer(input: AdminQaInput): Promise<PolicyQ
 }
 
 export async function getAdminPolicyAnswerStream(input: AdminQaInput) {
+  const adminContext = await getAdminBusinessContext();
 
-    const adminContext = await getAdminBusinessContext();
+  const {stream} = ai.generateStream({
+    model: 'gemini-1.5-flash',
+    prompt: {
+      template: promptTemplateText,
+      input: {
+        customer_question: input.customer_question,
+        business_context: adminContext,
+      },
+    },
+    output: {
+      schema: z.object({answer: z.string()}),
+      format: 'json',
+    },
+  });
 
-    const {stream} = generateStream({
-        model: ai.model('gemini-1.5-flash'),
-        prompt: {
-            template: promptTemplateText,
-            input: {
-                customer_question: input.customer_question,
-                business_context: adminContext,
-            },
-        },
-        output: {
-            schema: z.object({ answer: z.string() }),
-            format: 'json',
-        },
-    });
+  const decoder = new TextDecoder();
+  const transformStream = new TransformStream({
+    transform(chunk, controller) {
+      const text = decoder.decode(chunk, {stream: true});
+      try {
+        const jsonChunk = JSON.parse(text);
+        if (jsonChunk.answer) {
+          controller.enqueue(jsonChunk.answer);
+        }
+      } catch (e) {
+        // Incomplete JSON
+      }
+    },
+  });
 
-    const decoder = new TextDecoder();
-    const transformStream = new TransformStream({
-        transform(chunk, controller) {
-            const text = decoder.decode(chunk, {stream: true});
-            try {
-                const jsonChunk = JSON.parse(text);
-                if (jsonChunk.answer) {
-                    controller.enqueue(jsonChunk.answer);
-                }
-            } catch (e) {
-                // Incomplete JSON
-            }
-        },
-    });
-
-    return stream.pipeThrough(transformStream);
+  return stream.pipeThrough(transformStream);
 }
 
 const adminPolicyQaFlow = ai.defineFlow(

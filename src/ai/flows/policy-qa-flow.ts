@@ -11,7 +11,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import {generateStream} from '@genkit-ai/google-genai';
 import { adminDb } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -52,16 +51,15 @@ export async function getPolicyAnswer(input: PolicyQaInput): Promise<PolicyQaOut
 }
 
 export async function getPolicyAnswerStream(input: PolicyQaInput) {
-
-  const {stream} = generateStream({
-    model: ai.model('gemini-1.5-flash'),
+  const {stream} = ai.generateStream({
+    model: 'gemini-1.5-flash',
     prompt: {
-        template: promptTemplate.prompt.template,
-        input: {
-          customer_question: input.customer_question,
-          business_context: input.business_context,
-          userId: input.userId,
-        },
+      template: promptTemplate.prompt.template,
+      input: {
+        customer_question: input.customer_question,
+        business_context: input.business_context,
+        userId: input.userId,
+      },
     },
     output: {
       schema: PolicyQaOutputSchema,
