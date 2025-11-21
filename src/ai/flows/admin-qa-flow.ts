@@ -15,14 +15,14 @@ const ADMIN_BUSINESS_CONTEXT = `
 Product Name: Retail-Assist 3.0
 
 Core Functionality:
-Retail-Assist 3.0 is an AI-powered assistant designed for small businesses. Its primary goal is to automate customer support and repetitive queries.
+Retail-Assist 3.0 is an AI-powered assistant designed for small businesses to automate customer support and handle repetitive queries across multiple platforms.
 
 Key Features:
-1.  Policy AI: Business owners can provide their own business context (like a return policy, FAQ, or service descriptions). The AI uses this context to answer customer questions accurately.
-2.  WhatsApp Integration: The AI assistant can be connected to a business's WhatsApp number to answer customer questions directly in the app they use most. This is the primary way clients interact with the bot.
-3.  Visual Search: For retail businesses, customers can upload a photo of a product to find similar items in the store's inventory.
-4.  Automated Returns: For retail, the system can handle the initial steps of a return process based on the store's policy.
-5.  Admin Dashboard: The business owner gets a dashboard to see analytics (like AI interactions, time saved) and manage their tools.
+1.  Multi-Platform Integration: The AI assistant connects to a business's WhatsApp, Facebook Messenger, and Instagram DMs to answer customer questions directly where they are.
+2.  Custom Policy AI: Business owners provide their own business context (like a return policy, FAQ, or service descriptions). The AI uses this specific context to answer customer questions accurately.
+3.  Visual Product Search: For retail businesses, customers can upload a photo of a product to find similar items in the store's inventory.
+4.  Admin Dashboard: Business owners get a central dashboard to view analytics (like AI interactions, time saved), manage their AI's knowledge, and control their connected platforms.
+5.  Website Widget: An embeddable chat widget to integrate the AI assistant directly onto the business's own website.
 
 Target Audience:
 The tool is designed for a wide range of small businesses:
@@ -32,13 +32,13 @@ The tool is designed for a wide range of small businesses:
 
 Onboarding Process:
 A new business owner goes through a simple 3-step wizard:
-1.  Create an account with their business name, email, password, and WhatsApp number.
-2.  Provide their business context (paste in text like an FAQ).
-3.  Choose which features to activate.
-After this, they are taken to their dashboard.
+1.  Create an account with their business name, email, password, and social media details (WhatsApp, Facebook, Instagram).
+2.  Provide their business context (paste in text like an FAQ or company policies).
+3.  Confirm which features to activate.
+After this, they are taken to their dashboard to manage their settings.
 
-Connecting to WhatsApp:
-This is a "Done-For-You" service included in the Launch Partner offer. The Retail-Assist 3.0 owner (you) will use the WhatsApp number collected during onboarding to connect their account to the WhatsApp Business API. The business owner does not need to do this themselves.
+Connecting to WhatsApp, Facebook & Instagram:
+This is a "Done-For-You" service included in the Launch Partner offer. The Retail-Assist 3.0 owner (you) will use the business information (like WhatsApp number and Facebook Page ID) collected during onboarding to connect their account to the necessary Business APIs. The business owner does not need to handle the technical API setup themselves.
 
 Pricing:
 There is a "Limited Launch Partner Offer" for P225/month (or R300 for SA businesses). This gives them 50% off for life, a free "Done-For-You" setup, and direct influence on new features.
