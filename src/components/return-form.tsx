@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useRef, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import type { State } from '@/app/actions';
 import { initiateReturn } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ function SubmitButton() {
 }
 
 export function ReturnForm() {
-    const [state, formAction] = useFormState(initiateReturn, initialState);
+    const [state, formAction] = useActionState(initiateReturn, initialState);
     const formRef = useRef<HTMLFormElement>(null);
     const { pending } = useFormStatus();
     
