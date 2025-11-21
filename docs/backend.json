@@ -71,6 +71,27 @@
         }
       },
       "required": ["productName", "price", "currency", "imageUrl", "productUrl"]
+    },
+    "Interaction": {
+      "title": "Interaction",
+      "type": "object",
+      "description": "Represents a single analytics event or interaction.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The type of interaction (e.g., 'POLICY_QA', 'VISUAL_SEARCH')."
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional details specific to the interaction type."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the interaction occurred."
+        }
+      },
+      "required": ["type", "createdAt"]
     }
   },
   "auth": {
@@ -88,6 +109,12 @@
         "$ref": "#/entities/Product"
       },
       "description": "Stores the product catalog for each business/user."
+    },
+    "/users/{userId}/interactions/{interactionId}": {
+      "schema": {
+        "$ref": "#/entities/Interaction"
+      },
+      "description": "Stores analytics interactions for each business/user."
     }
   }
 }

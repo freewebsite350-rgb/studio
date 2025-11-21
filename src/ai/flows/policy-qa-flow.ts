@@ -10,11 +10,25 @@
 
 import {ai} from '@/ai/genkit';
 import {z, generateStream} from 'genkit';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { initializeApp, getApp, App } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
+
+// Helper to initialize Firebase Admin SDK.
+let app: App;
+try {
+  app = getApp();
+} catch (e) {
+  app = initializeApp(firebaseConfig);
+}
+
+const db = getFirestore(app);
+
 
 const PolicyQaInputSchema = z.object({
   customer_question: z.string().describe("The customer's question about the business."),
-  // In a real app, this context would be fetched from a database based on the logged-in user.
   business_context: z.string().describe("The business's policy, FAQ, or other relevant information."),
+   userId: z.string().describe("The UID of the user whose context is being used."),
 });
 export type PolicyQaInput = z.infer<typeof PolicyQaInputSchema>;
 
@@ -53,6 +67,7 @@ export async function getPolicyAnswerStream(input: PolicyQaInput) {
     input: {
       customer_question: input.customer_question,
       business_context: input.business_context,
+      userId: input.userId,
     },
     output: {
       schema: PolicyQaOutputSchema,
@@ -86,10 +101,20 @@ const policyQaFlow = ai.defineFlow(
     outputSchema: PolicyQaOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt({
-        customer_question: input.customer_question,
-        business_context: input.business_context,
-    });
+    const {output} = await prompt(input);
+
+    if (output && input.userId) {
+        const interactionsRef = collection(db, 'users', input.userId, 'interactions');
+        await addDoc(interactionsRef, {
+            type: 'POLICY_QA',
+            details: {
+                question: input.customer_question,
+                answer: output.answer,
+            },
+            createdAt: serverTimestamp(),
+        });
+    }
+
     return output!;
   }
 );

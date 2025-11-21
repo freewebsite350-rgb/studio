@@ -47,7 +47,7 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
 
 
     const handleAsk = async () => {
-        if (!question.trim()) return;
+        if (!question.trim() || !user) return;
 
         setIsLoading(true);
         setAnswer('');
@@ -63,7 +63,8 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
 
             const stream = await qaStreamer({ 
                 customer_question: question,
-                business_context: businessContext, // Will be `null` for admin, which is handled in the flow
+                business_context: businessContext!, // Can be empty string, but must be provided
+                userId: user.uid,
             });
             
             const reader = stream.getReader();
