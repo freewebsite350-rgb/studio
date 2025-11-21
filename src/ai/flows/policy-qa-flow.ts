@@ -14,7 +14,7 @@ import {z} from 'zod';
 import { getFirestore, addDoc, collection, serverTimestamp, Firestore } from 'firebase/firestore';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 
-// Helper to initialize Firebase SDK for server-side use.
+// Helper to initialize Firebase SDK for server-side use, ensuring it's only done once per request context if needed.
 function getDb(): Firestore {
     if (getApps().length === 0) {
         const firebaseConfig = {
@@ -67,7 +67,7 @@ export async function getPolicyAnswer(input: PolicyQaInput): Promise<PolicyQaOut
 }
 
 export async function getPolicyAnswerStream(input: PolicyQaInput) {
-  const {stream} = ai.generateStream({
+  const {stream} = await ai.generateStream({
     model: 'gemini-1.5-flash',
     prompt: {
       template: promptTemplate.prompt.template,

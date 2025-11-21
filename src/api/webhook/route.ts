@@ -4,7 +4,7 @@ import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Fi
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
-// Helper to initialize Firebase SDK for server-side use.
+// Helper to initialize Firebase SDK for server-side use, ensuring it's only done once per request context if needed.
 function getDb(): Firestore {
     if (getApps().length === 0) {
         const firebaseConfig = {

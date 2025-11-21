@@ -13,7 +13,7 @@ import {z} from 'zod';
 import { getFirestore, collection, getDocs, query, addDoc, serverTimestamp, Firestore } from 'firebase/firestore';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 
-// Helper to initialize Firebase SDK for server-side use.
+// Helper to initialize Firebase SDK for server-side use, ensuring it's only done once per request context if needed.
 function getDb(): Firestore {
     if (getApps().length === 0) {
         const firebaseConfig = {

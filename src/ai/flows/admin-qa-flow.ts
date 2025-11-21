@@ -17,7 +17,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 const ADMIN_CONFIG_DOC_ID = 'app_configuration';
 const ADMIN_CONTEXT_COLLECTION = 'admin';
 
-// Helper to initialize Firebase SDK for server-side use.
+// Helper to initialize Firebase SDK for server-side use, ensuring it's only done once per request context if needed.
 function getDb(): Firestore {
     if (getApps().length === 0) {
         const firebaseConfig = {
@@ -71,7 +71,7 @@ export async function getAdminPolicyAnswer(input: AdminQaInput): Promise<PolicyQ
 export async function getAdminPolicyAnswerStream(input: AdminQaInput) {
   const adminContext = await getAdminBusinessContext();
 
-  const {stream} = ai.generateStream({
+  const {stream} = await ai.generateStream({
     model: 'gemini-1.5-flash',
     prompt: {
       template: promptTemplateText,
