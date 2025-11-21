@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { CheckCircle, Bot, Package, Camera, BarChart2, Zap } from 'lucide-react';
+import { CheckCircle, Bot, Package, Camera, BarChart2, Zap, FileText, Code } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AppConfig } from '@/lib/app-config';
@@ -13,22 +13,22 @@ const features = [
     {
       icon: <Bot className="h-8 w-8 text-primary" />,
       title: "24/7 AI-Powered Support",
-      description: "Stop replying to the same questions. Our AI handles delivery queries, stock checks, and policy questions instantly.",
+      description: "Stop replying to the same questions. Our AI handles delivery queries, support questions, and policy info instantly.",
     },
     {
-      icon: <Package className="h-8 w-8 text-primary" />,
-      title: "Automated Returns",
-      description: "Free up your time with an automated returns process. Our AI handles the initial steps, so you don't have to.",
+      icon: <FileText className="h-8 w-8 text-primary" />,
+      title: "Automated Workflows",
+      description: "Free up your time by automating repetitive tasks like processing returns or answering initial client questions.",
     },
     {
       icon: <Camera className="h-8 w-8 text-primary" />,
       title: "Visual Product Search",
-      description: "Allow customers to search for products by uploading a photo, just like the big retailers do.",
+      description: "For retailers, allow customers to search for products by uploading a photo, just like the big brands do.",
     },
     {
       icon: <BarChart2 className="h-8 w-8 text-primary" />,
       title: "Smart Analytics",
-      description: "Get actionable insights from your returns data to improve your products and reduce return rates.",
+      description: "Get actionable insights from your customer interactions to improve your products and services.",
     },
 ];
 
@@ -38,10 +38,10 @@ export function LandingPage() {
             {/* Hero Section */}
             <section className="text-center py-20 px-4 bg-background">
                 <h1 className="text-5xl font-extrabold tracking-tighter mb-4 text-foreground">
-                    Give Your Retail Business an AI Assistant
+                    Give Your Small Business an AI Assistant
                 </h1>
                 <p className="max-w-2xl mx-auto text-xl text-muted-foreground mb-8">
-                    {AppConfig.appDescription} Stop spending hours on repetitive tasks and focus on growing your business.
+                   Whether you sell physical products, digital downloads, or your time as a service, {AppConfig.appName} can handle your repetitive customer queries.
                 </p>
                 <div className="flex justify-center gap-4">
                     <Button size="lg" asChild>
@@ -99,7 +99,7 @@ export function LandingPage() {
             <section id="pricing" className="py-20 px-4 bg-secondary/30">
                 <div className="container mx-auto max-w-4xl text-center">
                     <h2 className="text-3xl font-bold tracking-tight mb-4">Limited Launch Partner Offer</h2>
-                    <p className="text-lg text-muted-foreground mb-12">Become a Launch Partner and get exclusive benefits for helping us shape the future of retail.</p>
+                    <p className="text-lg text-muted-foreground mb-12">Become a Launch Partner and get exclusive benefits for helping us shape the future of local small business tools.</p>
                     <Card className="shadow-2xl border-2 border-primary scale-105">
                         <CardHeader className="text-center">
                             <div className="flex justify-center mb-4">
