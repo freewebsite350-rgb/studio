@@ -10,27 +10,9 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z, generateStream} from 'genkit';
-import { getFirestore, collection, addDoc, serverTimestamp, Firestore } from 'firebase/firestore';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-
-
-// Helper to initialize Firebase SDK for server-side use.
-function getDb(): Firestore {
-    if (getApps().length === 0) {
-        const firebaseConfig = {
-            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-        };
-        initializeApp(firebaseConfig);
-    }
-    return getFirestore(getApp());
-}
-
+import {z, generateStream} from 'genkit/stream';
+import { adminDb } from '@/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const PolicyQaInputSchema = z.object({
   customer_question: z.string().describe("The customer's question about the business."),
@@ -49,7 +31,8 @@ const promptTemplate = {
     name: 'policyQaPrompt',
     input: {schema: PolicyQaInputSchema},
     output: {schema: PolicyQaOutputSchema},
-    prompt: `You are a helpful AI assistant for a business. Your goal is to answer customer questions based ONLY on the following context provided. Do not use any external knowledge. If the answer is not in the context, politely state that you don't have that information.
+    prompt: {
+        template: `You are a helpful AI assistant for a business. Your goal is to answer customer questions based ONLY on the following context provided. Do not use any external knowledge. If the answer is not in the context, politely state that you don't have that information.
 
 Business Context:
 """
@@ -58,6 +41,7 @@ Business Context:
 
 Customer Question: {{{customer_question}}}
 `,
+    }
 };
 
 const prompt = ai.definePrompt(promptTemplate);
@@ -70,11 +54,13 @@ export async function getPolicyAnswerStream(input: PolicyQaInput) {
 
   const {stream} = generateStream({
     model: ai.model('gemini-1.5-flash'),
-    prompt: promptTemplate.prompt,
-    input: {
-      customer_question: input.customer_question,
-      business_context: input.business_context,
-      userId: input.userId,
+    prompt: {
+        template: promptTemplate.prompt.template,
+        input: {
+          customer_question: input.customer_question,
+          business_context: input.business_context,
+          userId: input.userId,
+        },
     },
     output: {
       schema: PolicyQaOutputSchema,
@@ -111,15 +97,15 @@ const policyQaFlow = ai.defineFlow(
     const {output} = await prompt(input);
 
     if (output && input.userId) {
-        const firestore = getDb();
-        const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
-        await addDoc(interactionsRef, {
+        const firestore = adminDb;
+        const interactionsRef = firestore.collection('users').doc(input.userId).collection('interactions');
+        await interactionsRef.add({
             type: 'POLICY_QA',
             details: {
                 question: input.customer_question,
                 answer: output.answer,
             },
-            createdAt: serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
         });
     }
 

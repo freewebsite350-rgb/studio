@@ -10,25 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {getFirestore, collection, getDocs, addDoc, serverTimestamp, Firestore} from 'firebase/firestore';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-
-
-// Helper to initialize Firebase SDK for server-side use.
-function getDb(): Firestore {
-    if (getApps().length === 0) {
-        const firebaseConfig = {
-            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-        };
-        initializeApp(firebaseConfig);
-    }
-    return getFirestore(getApp());
-}
+import { adminDb } from '@/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 
 const ProductSchema = z.object({
@@ -81,16 +64,16 @@ const prompt = ai.definePrompt({
   name: 'visualSearchPrompt',
   input: {schema: VisualSearchInputSchema.extend({ productCatalogJson: z.string() })},
   output: {schema: VisualSearchOutputSchema},
-  prompt: promptTemplate,
+  prompt: {template: promptTemplate},
   model: ai.model('gemini-1.5-flash'),
 });
 
 
 async function getProductsForUser(userId: string) {
-    const firestore = getDb();
+    const firestore = adminDb;
     const products = [];
-    const productsCollectionRef = collection(firestore, 'users', userId, 'products');
-    const querySnapshot = await getDocs(productsCollectionRef);
+    const productsCollectionRef = firestore.collection('users').doc(userId).collection('products');
+    const querySnapshot = await productsCollectionRef.get();
     for (const doc of querySnapshot.docs) {
         const data = doc.data();
         products.push({
@@ -119,16 +102,16 @@ const visualSearchFlow = ai.defineFlow(
         productCatalogJson: catalogJson
     });
     
-    const firestore = getDb();
+    const firestore = adminDb;
     if (output && output.products.length > 0 && input.userId) {
-        const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
-        await addDoc(interactionsRef, {
+        const interactionsRef = firestore.collection('users').doc(input.userId).collection('interactions');
+        await interactionsRef.add({
             type: 'VISUAL_SEARCH',
             details: {
                 resultCount: output.products.length,
                 topMatch: output.products[0].productName,
             },
-            createdAt: serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
         });
     }
 
