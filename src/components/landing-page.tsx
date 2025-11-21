@@ -5,7 +5,6 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { CheckCircle, Bot, Package, Camera, BarChart2, Zap, FileText, Code, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AppConfig } from '@/lib/app-config';
 
 
@@ -78,7 +77,7 @@ export function LandingPage() {
             <section className="py-20 px-4 bg-background">
                 <div className="container mx-auto text-center">
                     <h2 className="text-3xl font-bold tracking-tight mb-4">Everything You Need to Scale Support</h2>
-                    <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">Retail-Assist 3.0 provides the tools to enhance customer experience and streamline your operations.</p>
+                    <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">{AppConfig.appName} provides the tools to enhance customer experience and streamline your operations.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {features.map((feature, index) => (
                             <Card key={index} className="text-left hover:shadow-lg transition-shadow">
