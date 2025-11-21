@@ -30,6 +30,10 @@
           "type": "string",
           "description": "The URL of the business's Facebook page."
         },
+        "facebookPageId": {
+            "type": "string",
+            "description": "The ID of the business's Facebook page."
+        },
         "instagramHandle": {
           "type": "string",
           "description": "The business's Instagram handle."

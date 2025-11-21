@@ -1,12 +1,11 @@
 import { NextRequest } from 'next/server';
-import { getFirestore, doc, getDoc, collection, query, limit, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where } from 'firebase/firestore';
 import { initializeApp, getApp, App } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
 
 const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
-const PAGE_ID = process.env.NEXT_PUBLIC_FB_PAGE_ID;
 
 // Initialize Firebase
 let app: App;
@@ -64,9 +63,10 @@ export async function POST(request: NextRequest) {
         console.log('[FB WEBHOOK] Processing event:', webhook_event);
 
         const sender_psid = webhook_event.sender.id;
+        const page_id = webhook_event.recipient.id;
         
         if (webhook_event.message && !webhook_event.message.is_echo) {
-          await handleMessage(sender_psid, webhook_event.message);
+          await handleMessage(sender_psid, page_id, webhook_event.message);
         }
       }
       return new Response(JSON.stringify({ status: 'success' }), {
@@ -82,38 +82,35 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleMessage(sender_psid: string, received_message: any) {
+async function handleMessage(sender_psid: string, page_id: string, received_message: any) {
     if (!received_message.text) {
         console.log('[FB WEBHOOK] Received message without text, ignoring.');
         return;
     }
 
-    // In a real app, you would have a database that stores a mapping
-    // from a PSID to your app's user ID. For this demo, we'll find the
-    // first user in the database and use their context.
-    // THIS IS NOT A PRODUCTION-READY SOLUTION.
     let userId = '';
     let businessContext = '';
 
     try {
-        console.log('[FIREBASE] Searching for user data to provide context...');
-        const usersQuery = query(collection(db, 'users'), limit(1));
-        const querySnapshot = await getDocs(usersQuery);
+        console.log(`[FIREBASE] Searching for user with Facebook Page ID: ${page_id}`);
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("facebookPageId", "==", page_id), limit(1));
+        const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-             console.error('[FIREBASE] CRITICAL: No user documents found in the database. Cannot get business context.');
-             await callSendAPI(sender_psid, { text: "I'm sorry, I can't find any business information to help you." });
+             console.error(`[FIREBASE] CRITICAL: No user found for pageId ${page_id}. Cannot get business context.`);
+             await callSendAPI(sender_psid, page_id, { text: "I'm sorry, this business has not configured their AI assistant correctly." });
              return;
         }
 
         const userDoc = querySnapshot.docs[0];
         userId = userDoc.id;
         businessContext = userDoc.data()?.businessContext;
-        console.log(`[FIREBASE] Using context from user: ${userId}`);
+        console.log(`[FIREBASE] Found user ${userId}. Using their context to respond.`);
 
         if (!businessContext) {
             console.error(`[FIREBASE] User ${userId} does not have businessContext set.`);
-            await callSendAPI(sender_psid, { text: "I'm sorry, the AI assistant for this business has not been configured yet." });
+            await callSendAPI(sender_psid, page_id, { text: "I'm sorry, the AI assistant for this business has not been configured yet." });
             return;
         }
         
@@ -124,20 +121,16 @@ async function handleMessage(sender_psid: string, received_message: any) {
             userId: userId,
         });
 
-        await callSendAPI(sender_psid, { text: aiResponse.answer });
+        await callSendAPI(sender_psid, page_id, { text: aiResponse.answer });
 
     } catch (error: any)
     {
         console.error('[AI/FIREBASE ERROR] Error handling message:', error);
-        await callSendAPI(sender_psid, { text: "Sorry, I ran into a problem trying to respond. Please try again later." });
+        await callSendAPI(sender_psid, page_id, { text: "Sorry, I ran into a problem trying to respond. Please try again later." });
     }
 }
 
-async function callSendAPI(sender_psid: string, response: any) {
-  if (!PAGE_ID) {
-    console.error('[SEND API] ERROR: NEXT_PUBLIC_FB_PAGE_ID environment variable not set.');
-    return;
-  }
+async function callSendAPI(sender_psid: string, page_id: string, response: any) {
   const request_body = {
     recipient: {
       id: sender_psid,
@@ -145,7 +138,7 @@ async function callSendAPI(sender_psid: string, response: any) {
     message: response,
   };
 
-  const url = `https://graph.facebook.com/v19.0/${PAGE_ID}/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+  const url = `https://graph.facebook.com/v19.0/${page_id}/messages?access_token=${PAGE_ACCESS_TOKEN}`;
   console.log('[SEND API] Calling Graph API to send message...');
 
   try {

@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, HelpCircle } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -14,12 +14,14 @@ import { Input } from './ui/input';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import Link from 'next/link';
 
 const settingsSchema = z.object({
     businessContext: z.string().min(20, 'Please provide some context for your business.'),
     whatsappNumber: z.string().optional(),
     facebookPage: z.string().optional(),
+    facebookPageId: z.string().optional(),
     instagramHandle: z.string().optional(),
 });
 
@@ -38,6 +40,7 @@ export function BusinessSettings() {
         businessContext: '',
         whatsappNumber: '',
         facebookPage: '',
+        facebookPageId: '',
         instagramHandle: '',
     }
   });
@@ -53,6 +56,7 @@ export function BusinessSettings() {
               businessContext: data.businessContext || '',
               whatsappNumber: data.whatsappNumber || '',
               facebookPage: data.facebookPage || '',
+              facebookPageId: data.facebookPageId || '',
               instagramHandle: data.instagramHandle || '',
           });
         }
@@ -146,6 +150,18 @@ export function BusinessSettings() {
                         </FormItem>
                     )} />
 
+                    <FormField control={form.control} name="facebookPageId" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Facebook Page ID</FormLabel>
+                            <FormControl><Input placeholder="e.g. 123456789012345" {...field} /></FormControl>
+                             <FormDescription className="flex items-center gap-1 text-xs pt-1">
+                                <HelpCircle className="h-3 w-3"/>
+                                Find this in your Page's "About" &gt; "Page Transparency" section.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+
                     <FormField control={form.control} name="instagramHandle" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Instagram Handle</FormLabel>
@@ -164,5 +180,3 @@ export function BusinessSettings() {
     </Card>
   );
 }
-
-    
