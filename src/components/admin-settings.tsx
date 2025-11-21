@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -54,29 +55,37 @@ export function AdminSettings() {
 
   const handleSaveChanges = async (data: SettingsFormData) => {
     if (!firestore) return;
-    setIsSaving(true);
+    
+    // UI is no longer blocked here
+    setIsSaving(true); 
 
     const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
-    try {
-        await setDoc(configDocRef, { 
-            ...data,
-            updatedAt: serverTimestamp() 
-        }, { merge: true });
-
-        toast({
-            title: 'Settings Saved!',
-            description: 'The admin support AI has been updated with the new information.',
-        });
-    } catch(e) {
+    
+    // Don't await the setDoc call
+    setDoc(configDocRef, { 
+        ...data,
+        updatedAt: serverTimestamp() 
+    }, { merge: true })
+    .catch((e) => {
         console.error(e);
         toast({
             variant: "destructive",
             title: 'Uh oh! Something went wrong.',
-            description: 'Could not save your settings. Please try again.',
+            description: 'Could not save your settings in the background. Please try again.',
         });
-    } finally {
+    });
+
+    // Give optimistic success feedback immediately
+    toast({
+        title: 'Settings Saved!',
+        description: 'The admin support AI has been updated with the new information.',
+    });
+    
+    // It's good practice to briefly show the saving state in UI, even if non-blocking
+    setTimeout(() => {
         setIsSaving(false);
-    }
+        form.reset(data); // Mark the form as no longer dirty
+    }, 500); 
   };
 
   if (isLoading) {
