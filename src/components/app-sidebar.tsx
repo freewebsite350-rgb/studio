@@ -76,15 +76,22 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/onboarding'}
+              tooltip={{ children: 'Onboarding' }}
+            >
+              <Link href="/onboarding">
+                <UserPlus />
+                <span>Onboarding</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <Button variant="ghost" asChild>
-          <Link href="/onboarding">
-            <UserPlus className="mr-2" />
-            Sign Up
-          </Link>
-        </Button>
+         {/* The sign-up button was here, but it makes more sense as a main navigation item for a demo */}
       </SidebarFooter>
     </>
   );
