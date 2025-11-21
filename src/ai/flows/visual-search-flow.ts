@@ -10,13 +10,13 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {getFirestore, collection, getDocs, addDoc, serverTimestamp, Firestore} from 'firebase/firestore';
+import {getFirestore, collection, getDocs, addDoc, serverTimestamp, Firestore, enablePersistentCache} from 'firebase/firestore';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
 
 // Helper to initialize Firebase SDK for server-side use.
-let db: Firestore;
-function getDb() {
+let db: Firestore | null = null;
+async function getDb() {
     if (!db) {
         let app: FirebaseApp;
         if (!getApps().length) {
@@ -32,7 +32,13 @@ function getDb() {
         } else {
             app = getApp();
         }
-        db = getFirestore(app);
+        const firestore = getFirestore(app);
+        try {
+            await enablePersistentCache(firestore);
+        } catch (err) {
+            console.error("Firebase persistence error", err);
+        }
+        db = firestore;
     }
     return db;
 }
@@ -93,7 +99,7 @@ const prompt = ai.definePrompt({
 
 
 async function getProductsForUser(userId: string) {
-    const firestore = getDb();
+    const firestore = await getDb();
     const products = [];
     const productsCollectionRef = collection(firestore, 'users', userId, 'products');
     const querySnapshot = await getDocs(productsCollectionRef);
@@ -125,7 +131,7 @@ const visualSearchFlow = ai.defineFlow(
         productCatalogJson: catalogJson
     });
     
-    const firestore = getDb();
+    const firestore = await getDb();
     if (output && output.products.length > 0 && input.userId) {
         const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
         await addDoc(interactionsRef, {

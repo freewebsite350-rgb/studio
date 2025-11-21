@@ -9,14 +9,14 @@
 
 import {ai} from '@/ai/genkit';
 import {z, generateStream} from 'genkit';
-import { PolicyQaInput, PolicyQaOutput } from './policy-qa-flow';
-import { getFirestore, doc, getDoc, Firestore } from 'firebase/firestore';
+import { PolicyQaOutput } from './policy-qa-flow';
+import { getFirestore, doc, getDoc, Firestore, enablePersistentCache } from 'firebase/firestore';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
 
 // Helper to initialize Firebase SDK for server-side use.
-let db: Firestore;
-function getDb() {
+let db: Firestore | null = null;
+async function getDb() {
     if (!db) {
         let app: FirebaseApp;
         if (!getApps().length) {
@@ -32,7 +32,13 @@ function getDb() {
         } else {
             app = getApp();
         }
-        db = getFirestore(app);
+        const firestore = getFirestore(app);
+        try {
+            await enablePersistentCache(firestore);
+        } catch (err) {
+            console.error("Firebase persistence error", err);
+        }
+        db = firestore;
     }
     return db;
 }
@@ -42,7 +48,7 @@ const ADMIN_CONFIG_DOC_ID = 'app_configuration';
 const ADMIN_CONTEXT_COLLECTION = 'admin';
 
 async function getAdminBusinessContext(): Promise<string> {
-    const firestore = getDb();
+    const firestore = await getDb();
     const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
     const docSnap = await getDoc(configDocRef);
     if (docSnap.exists() && docSnap.data()?.adminBusinessContext) {

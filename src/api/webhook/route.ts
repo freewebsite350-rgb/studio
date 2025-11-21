@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server';
-import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Firestore } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Firestore, enablePersistentCache } from 'firebase/firestore';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
 // Helper to initialize Firebase SDK for server-side use.
-let db: Firestore;
-function getDb() {
+let db: Firestore | null = null;
+async function getDb() {
     if (!db) {
         let app: FirebaseApp;
         if (!getApps().length) {
@@ -21,7 +21,13 @@ function getDb() {
         } else {
             app = getApp();
         }
-        db = getFirestore(app);
+        const firestore = getFirestore(app);
+        try {
+            await enablePersistentCache(firestore);
+        } catch (err) {
+            console.error("Firebase persistence error", err);
+        }
+        db = firestore;
     }
     return db;
 }
@@ -104,7 +110,7 @@ async function handleMessage(sender_psid: string, page_id: string, received_mess
 
     let userId = '';
     let businessContext = '';
-    const firestore = getDb();
+    const firestore = await getDb();
 
     try {
         console.log(`[FIREBASE] Searching for user with Facebook Page ID: ${page_id}`);
