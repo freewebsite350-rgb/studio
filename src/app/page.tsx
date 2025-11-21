@@ -1,5 +1,7 @@
 import { ReturnForm } from '@/components/return-form';
-import { Package } from 'lucide-react';
+import { Package, Search } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   return (
@@ -17,6 +19,14 @@ export default function Home() {
           </p>
         </div>
         <ReturnForm />
+        <div className="mt-8 text-center">
+            <Button asChild variant="outline">
+                <Link href="/visual-search">
+                    <Search className="mr-2 h-4 w-4" />
+                    Go to Visual Search
+                </Link>
+            </Button>
+        </div>
       </div>
     </main>
   );
