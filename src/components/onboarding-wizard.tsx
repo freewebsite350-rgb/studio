@@ -63,7 +63,7 @@ export function OnboardingWizard() {
                 </div>
             </CardContent>
              <CardFooter className="flex-col gap-4">
-                <Link href="/" className="w-full">
+                <Link href="/dashboard" className="w-full">
                     <Button className="w-full">Go to Dashboard</Button>
                 </Link>
             </CardFooter>
