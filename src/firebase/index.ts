@@ -1,6 +1,6 @@
 
 'use client';
-import { FirebaseApp, getApp, initializeApp } from 'firebase/app';
+import { FirebaseApp, getApp, initializeApp, getApps } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
 import { useUser } from './auth/use-user';
@@ -34,18 +34,6 @@ function initializeFirebase() {
   
   return { app, auth, firestore };
 }
-
-// A helper to avoid re-initializing on the server in flows.
-// Re-export getApps from firebase/app
-import { getApps } from 'firebase/app';
-export function getFirebaseInstances() {
-    // Ensure Firebase is initialized
-    if (!getApps().length) {
-        return initializeFirebase();
-    }
-    return { app: getApp(), auth: getAuth(), firestore: getFirestore() };
-}
-
 
 export {
   initializeFirebase,

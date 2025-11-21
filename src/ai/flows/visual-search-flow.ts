@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A visual search agent for finding products in a catalog.
@@ -9,11 +10,32 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {getFirestore, collection, getDocs, addDoc, serverTimestamp} from 'firebase/firestore';
-import { getFirebaseInstances } from '@/firebase';
+import {getFirestore, collection, getDocs, addDoc, serverTimestamp, Firestore} from 'firebase/firestore';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
-// Helper to initialize Firebase Admin SDK.
-const { firestore: db } = getFirebaseInstances();
+
+// Helper to initialize Firebase SDK for server-side use.
+let db: Firestore;
+function getDb() {
+    if (!db) {
+        let app: FirebaseApp;
+        if (!getApps().length) {
+            const firebaseConfig = {
+                apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+                authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+                messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+                appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+            };
+            app = initializeApp(firebaseConfig);
+        } else {
+            app = getApp();
+        }
+        db = getFirestore(app);
+    }
+    return db;
+}
 
 
 const ProductSchema = z.object({
@@ -71,8 +93,9 @@ const prompt = ai.definePrompt({
 
 
 async function getProductsForUser(userId: string) {
+    const firestore = getDb();
     const products = [];
-    const productsCollectionRef = collection(db, 'users', userId, 'products');
+    const productsCollectionRef = collection(firestore, 'users', userId, 'products');
     const querySnapshot = await getDocs(productsCollectionRef);
     for (const doc of querySnapshot.docs) {
         const data = doc.data();
@@ -101,9 +124,10 @@ const visualSearchFlow = ai.defineFlow(
         ...input,
         productCatalogJson: catalogJson
     });
-
+    
+    const firestore = getDb();
     if (output && output.products.length > 0 && input.userId) {
-        const interactionsRef = collection(db, 'users', input.userId, 'interactions');
+        const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
         await addDoc(interactionsRef, {
             type: 'VISUAL_SEARCH',
             details: {

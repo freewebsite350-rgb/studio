@@ -1,13 +1,34 @@
 import { NextRequest } from 'next/server';
-import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where } from 'firebase/firestore';
-import { getFirebaseInstances } from '@/firebase';
+import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Firestore } from 'firebase/firestore';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+
+// Helper to initialize Firebase SDK for server-side use.
+let db: Firestore;
+function getDb() {
+    if (!db) {
+        let app: FirebaseApp;
+        if (!getApps().length) {
+            const firebaseConfig = {
+                apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+                authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+                messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+                appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+            };
+            app = initializeApp(firebaseConfig);
+        } else {
+            app = getApp();
+        }
+        db = getFirestore(app);
+    }
+    return db;
+}
+
 
 const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
-
-// Initialize Firebase
-const { firestore: db } = getFirebaseInstances();
 
 /**
  * Handles the webhook verification request from Meta.
@@ -83,10 +104,11 @@ async function handleMessage(sender_psid: string, page_id: string, received_mess
 
     let userId = '';
     let businessContext = '';
+    const firestore = getDb();
 
     try {
         console.log(`[FIREBASE] Searching for user with Facebook Page ID: ${page_id}`);
-        const usersRef = collection(db, 'users');
+        const usersRef = collection(firestore, 'users');
         const q = query(usersRef, where("facebookPageId", "==", page_id), limit(1));
         const querySnapshot = await getDocs(q);
 

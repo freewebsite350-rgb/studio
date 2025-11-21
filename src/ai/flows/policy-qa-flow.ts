@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Q&A agent that answers questions based on a provided business context.
@@ -10,11 +11,32 @@
 
 import {ai} from '@/ai/genkit';
 import {z, generateStream} from 'genkit';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getFirebaseInstances } from '@/firebase';
+import { getFirestore, collection, addDoc, serverTimestamp, Firestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
-// Helper to initialize Firebase Admin SDK.
-const { firestore: db } = getFirebaseInstances();
+
+// Helper to initialize Firebase SDK for server-side use.
+let db: Firestore;
+function getDb() {
+    if (!db) {
+        let app: FirebaseApp;
+        if (!getApps().length) {
+            const firebaseConfig = {
+                apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+                authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+                messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+                appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+            };
+            app = initializeApp(firebaseConfig);
+        } else {
+            app = getApp();
+        }
+        db = getFirestore(app);
+    }
+    return db;
+}
 
 
 const PolicyQaInputSchema = z.object({
@@ -96,7 +118,8 @@ const policyQaFlow = ai.defineFlow(
     const {output} = await prompt(input);
 
     if (output && input.userId) {
-        const interactionsRef = collection(db, 'users', input.userId, 'interactions');
+        const firestore = getDb();
+        const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
         await addDoc(interactionsRef, {
             type: 'POLICY_QA',
             details: {
