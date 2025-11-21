@@ -1,7 +1,7 @@
 import { AppConfig } from '@/lib/app-config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart2, Bot, Camera, LayoutDashboard, Package, Sparkles } from 'lucide-react';
+import { BarChart2, Bot, Camera, LayoutDashboard, Package, Sparkles, MessageCircle, Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 
 const tools = [
@@ -42,7 +42,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Key Metrics & Status */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
             <CardHeader>
@@ -74,13 +74,22 @@ export default function DashboardPage() {
                 <p className="text-4xl font-bold">~15 <span className="text-lg font-normal">hrs</span></p>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="border-primary/20 bg-primary/5">
             <CardHeader>
-                <CardTitle className="text-lg">Customer Rating</CardTitle>
-                <CardDescription>Average support rating</CardDescription>
+                <CardTitle className="text-lg flex items-center justify-between">
+                    <span>WhatsApp Bot</span>
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                </CardTitle>
+                <CardDescription>Connection status for clients</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-4xl font-bold">4.8<span className="text-2xl">/5</span></p>
+                <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-md">
+                     <span className="font-semibold text-destructive">Not Connected</span>
+                     <Button size="sm">
+                        <LinkIcon className="mr-2 h-4 w-4" />
+                        Connect
+                    </Button>
+                </div>
             </CardContent>
         </Card>
       </div>
