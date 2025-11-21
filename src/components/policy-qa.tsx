@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Sparkles } from 'lucide-react';
-import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
+import { getPolicyAnswerStream } from '@/ai/flows/policy-qa-flow';
 
 export function PolicyQa() {
     const [question, setQuestion] = useState('');
@@ -19,8 +19,19 @@ export function PolicyQa() {
         setAnswer('');
 
         try {
-            const result = await getPolicyAnswer({ customer_question: question });
-            setAnswer(result.answer);
+            const stream = await getPolicyAnswerStream({ customer_question: question });
+            const reader = stream.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedAnswer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                accumulatedAnswer += chunk;
+                setAnswer(accumulatedAnswer);
+            }
+
         } catch (error) {
             console.error(error);
             setAnswer('Sorry, I encountered an error trying to answer your question.');
@@ -43,18 +54,19 @@ export function PolicyQa() {
                         placeholder="e.g., What's the return window for electronics?" 
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
+                        onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleAsk()}
+                        disabled={isLoading}
                     />
                 </div>
-                {isLoading && (
+                {isLoading && !answer && (
                     <div className="flex items-center space-x-2 text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span>Thinking...</span>
                     </div>
                 )}
-                {answer && !isLoading && (
+                {answer && (
                     <div className="p-4 bg-secondary/50 rounded-md border border-border">
-                        <p className="text-sm text-foreground">{answer}</p>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{answer}</p>
                     </div>
                 )}
             </CardContent>
@@ -63,7 +75,7 @@ export function PolicyQa() {
                     {isLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Asking...
+                            Thinking...
                         </>
                     ) : (
                         <>
