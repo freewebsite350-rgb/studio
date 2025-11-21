@@ -17,10 +17,15 @@ export default function AppLayout({
   const router = useRouter();
 
   useEffect(() => {
-    // If the user is not logged in (and we're done checking), redirect them to the home page.
-    if (user === null) {
-      router.push('/');
-    }
+    // A brief delay to allow Firebase to initialize and determine auth state.
+    const timer = setTimeout(() => {
+      // If the user is not logged in (and we're done checking), redirect them to the home page.
+      if (user === null) {
+        router.push('/');
+      }
+    }, 50); // a small 50ms delay
+
+    return () => clearTimeout(timer);
   }, [user, router]);
 
   // While checking for the user, show a loading spinner.

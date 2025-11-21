@@ -5,8 +5,6 @@ import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
 import { initializeFirebase } from './index';
-import { useUser as useAuthCurrentUser } from './auth/use-user';
-
 
 interface FirebaseContextValue {
   app: FirebaseApp;
@@ -36,4 +34,3 @@ export const useFirebase = () => {
 
 export const useAuthUser = () => useFirebase().auth;
 export const useFirestore = () => useFirebase().firestore;
-export const useUser = useAuthCurrentUser;

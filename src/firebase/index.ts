@@ -1,27 +1,32 @@
 
 'use client';
-import { FirebaseApp, initializeApp } from 'firebase/app';
+import { FirebaseApp, getApp, initializeApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 import { useUser } from './auth/use-user';
-import { useFirestore, useUser as useAuthUser } from './provider';
+import { useAuthUser, useFirestore, FirebaseProvider } from './provider';
+import { FirebaseClientProvider } from './client-provider';
 
 let app: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
 
 function initializeFirebase() {
-  if (!app) {
+  try {
+    app = getApp();
+  } catch (e) {
     app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    firestore = getFirestore(app);
   }
+  auth = getAuth(app);
+  firestore = getFirestore(app);
   return { app, auth, firestore };
 }
 
 export {
   initializeFirebase,
+  FirebaseProvider,
+  FirebaseClientProvider,
   useUser,
   useFirestore,
   useAuthUser
