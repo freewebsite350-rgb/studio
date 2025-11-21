@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const ProductSchema = z.object({
   productName: z.string().describe('The name of the product.'),
@@ -34,36 +35,14 @@ const VisualSearchOutputSchema = z.object({
 export type VisualSearchOutput = z.infer<typeof VisualSearchOutputSchema>;
 
 // In a real app, this would come from a database (e.g., Firestore or a custom API).
-const MOCK_PRODUCT_CATALOG = [
-    {
-        productName: "Classic Leather Biker Jacket",
-        price: 2499,
-        currency: "R",
-        imageUrl: "https://images.unsplash.com/photo-1527016021513-b09758b777bd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YmxhY2slMjBqYWNrZXR8ZW58MHx8fHwxNzYzNzAxODk5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-        productUrl: "#"
-    },
-    {
-        productName: "Faux Leather Bomber Jacket",
-        price: 1899,
-        currency: "R",
-        imageUrl: "https://picsum.photos/seed/201/600/600",
-        productUrl: "#"
-    },
-    {
-        productName: "Suede Moto Jacket",
-        price: 2799,
-        currency: "R",
-        imageUrl: "https://picsum.photos/seed/202/600/600",
-        productUrl: "#"
-    },
-     {
-        productName: 'A Pair of Classic Blue Denim Jeans',
-        price: 899,
-        currency: 'R',
-        imageUrl: 'https://images.unsplash.com/photo-1588544622467-6df9eef29c7a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxibHVlJTIwamVhbnN8ZW58MHx8fHwxNzYzNjExMDU2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-        productUrl: '#',
-    },
-];
+// We simulate that by using the placeholder images.
+const MOCK_PRODUCT_CATALOG = PlaceHolderImages.filter(img => img.id !== 'dashboard-analytics').map(img => ({
+    productName: img.description,
+    price: Math.floor(Math.random() * 1000) + 500,
+    currency: 'R',
+    imageUrl: img.imageUrl,
+    productUrl: '#'
+}));
 
 
 export async function findSimilarProducts(input: VisualSearchInput): Promise<VisualSearchOutput> {
@@ -99,6 +78,13 @@ const visualSearchFlow = ai.defineFlow(
     outputSchema: VisualSearchOutputSchema,
   },
   async (input) => {
+    // In a real app with Firestore, you would fetch the user's product catalog here.
+    // For example:
+    // const userId = await getUserIdFromAuth(); // (pseudo-code)
+    // const products = await getProductsForUser(userId);
+    // const catalogJson = JSON.stringify(products);
+    // Then you would pass `catalogJson` to the prompt.
+
     const {output} = await prompt(input);
     return output!;
   }

@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "type": "object",
+      "description": "Represents a business owner who has signed up for the application.",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's unique ID from Firebase Authentication."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "businessName": {
+          "type": "string",
+          "description": "The name of the user's business."
+        },
+        "businessContext": {
+          "type": "string",
+          "description": "The business policy, FAQ, or other information for the AI."
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "The business's WhatsApp number."
+        },
+        "facebookPage": {
+          "type": "string",
+          "description": "The URL of the business's Facebook page."
+        },
+        "instagramHandle": {
+          "type": "string",
+          "description": "The business's Instagram handle."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the user account was created."
+        }
+      },
+      "required": ["uid", "email", "businessName", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product in a business's catalog.",
+      "properties": {
+        "productName": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the product."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the price (e.g., 'R' or 'P')."
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "A public URL to an image of the product."
+        },
+        "productUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "A public URL to the product page on the website."
+        }
+      },
+      "required": ["productName", "price", "currency", "imageUrl", "productUrl"]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores profile information for each user."
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
+      },
+      "description": "Stores the product catalog for each business/user."
+    }
+  }
+}
