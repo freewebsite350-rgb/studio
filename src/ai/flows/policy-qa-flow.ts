@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A Q&A agent that answers questions based on a return policy.
+ * @fileOverview A Q&A agent that answers questions based on a provided business context.
  *
  * - getPolicyAnswer - A function that handles the Q&A process.
  * - getPolicyAnswerStream - A streaming function for Q&A.
@@ -12,16 +12,19 @@ import {ai} from '@/ai/genkit';
 import {z, generateStream} from 'genkit';
 
 const PolicyQaInputSchema = z.object({
-  customer_question: z.string().describe("The customer's question about the return policy."),
+  customer_question: z.string().describe("The customer's question about the business."),
+  // In a real app, this context would be fetched from a database based on the logged-in user.
+  business_context: z.string().describe("The business's policy, FAQ, or other relevant information.").optional(),
 });
 export type PolicyQaInput = z.infer<typeof PolicyQaInputSchema>;
 
 const PolicyQaOutputSchema = z.object({
-  answer: z.string().describe("The answer to the customer's question, based on the policy."),
+  answer: z.string().describe("The answer to the customer's question, based on the provided context."),
 });
 export type PolicyQaOutput = z.infer<typeof PolicyQaOutputSchema>;
 
-const POLICY_CONTEXT = `
+// This is now a fallback for when no context is provided during the call.
+const DEFAULT_BUSINESS_CONTEXT = `
 Return Policy:
 
 Our return window is 30 days for most items. Items must be unworn, in their original packaging, and with all tags attached. 
@@ -41,14 +44,14 @@ const promptTemplate = {
     name: 'policyQaPrompt',
     input: {schema: PolicyQaInputSchema},
     output: {schema: PolicyQaOutputSchema},
-    prompt: `Based ONLY on the following policy text, answer the question. Do not use any external knowledge.
+    prompt: `You are a helpful AI assistant for a business. Your goal is to answer customer questions based ONLY on the following context provided. Do not use any external knowledge. If the answer is not in the context, politely state that you don't have that information.
 
-Policy Text:
+Business Context:
 """
-${POLICY_CONTEXT}
+{{{business_context}}}
 """
 
-Question: {{{customer_question}}}
+Customer Question: {{{customer_question}}}
 `,
 };
 
@@ -59,10 +62,15 @@ export async function getPolicyAnswer(input: PolicyQaInput): Promise<PolicyQaOut
 }
 
 export async function getPolicyAnswerStream(input: PolicyQaInput) {
+  const context = input.business_context || DEFAULT_BUSINESS_CONTEXT;
+
   const {stream} = generateStream({
     model: ai.model('gemini-2.5-flash'),
     prompt: promptTemplate.prompt,
-    input: input,
+    input: {
+      customer_question: input.customer_question,
+      business_context: context,
+    },
     output: {
       schema: PolicyQaOutputSchema,
       format: 'json',
@@ -94,8 +102,12 @@ const policyQaFlow = ai.defineFlow(
     inputSchema: PolicyQaInputSchema,
     outputSchema: PolicyQaOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const context = input.business_context || DEFAULT_BUSINESS_CONTEXT;
+    const {output} = await prompt({
+        customer_question: input.customer_question,
+        business_context: context,
+    });
     return output!;
   }
 );
