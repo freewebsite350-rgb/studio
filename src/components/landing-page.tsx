@@ -45,10 +45,10 @@ export function LandingPage() {
                 </p>
                 <div className="flex justify-center gap-4">
                     <Button size="lg" asChild>
-                        <Link href="/onboarding">Get Started for Free</Link>
+                        <Link href="/onboarding">Sign Up</Link>
                     </Button>
-                    <Button size="lg" variant="outline">
-                        Book a Demo
+                    <Button size="lg" variant="outline" asChild>
+                        <Link href="/login">Login</Link>
                     </Button>
                 </div>
             </section>
