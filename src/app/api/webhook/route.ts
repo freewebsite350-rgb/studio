@@ -25,15 +25,3 @@ export async function GET(req: Request) {
   // Fail if token doesn't match
   return new Response("Forbidden", { status: 403 });
 }
-
-/**
- * Handles incoming messages from Facebook (POST request)
- */
-export async function POST(req: Request) {
-  const body = await req.json();
-
-  // You can process incoming Messenger messages here
-  console.log("Incoming webhook:", body);
-
-  return new Response("EVENT_RECEIVED", { status: 200 });
-}
