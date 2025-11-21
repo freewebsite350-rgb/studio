@@ -23,7 +23,9 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <SidebarTrigger />
-          <h1 className="font-semibold text-lg">{AppConfig.appName}</h1>
+          <Link href="/">
+            <h1 className="font-semibold text-lg cursor-pointer">{AppConfig.appName}</h1>
+          </Link>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -43,10 +45,10 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/'}
+              isActive={pathname === '/returns'}
               tooltip={{ children: 'Returns' }}
             >
-              <Link href="/">
+              <Link href="/returns">
                 <Package />
                 <span>Returns</span>
               </Link>
@@ -76,22 +78,12 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === '/onboarding'}
-              tooltip={{ children: 'Onboarding' }}
-            >
-              <Link href="/onboarding">
-                <UserPlus />
-                <span>Onboarding</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-         {/* The sign-up button was here, but it makes more sense as a main navigation item for a demo */}
+         <Button asChild>
+            <Link href="/onboarding">Get Started</Link>
+         </Button>
       </SidebarFooter>
     </>
   );
