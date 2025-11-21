@@ -10,37 +10,24 @@
 import {ai} from '@/ai/genkit';
 import {z, generateStream} from 'genkit';
 import { PolicyQaOutput } from './policy-qa-flow';
-import { getFirestore, doc, getDoc, Firestore, enablePersistentCache } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, Firestore } from 'firebase/firestore';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
 
 // Helper to initialize Firebase SDK for server-side use.
-let db: Firestore | null = null;
-async function getDb() {
-    if (!db) {
-        let app: FirebaseApp;
-        if (!getApps().length) {
-            const firebaseConfig = {
-                apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-                authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-                messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-                appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-            };
-            app = initializeApp(firebaseConfig);
-        } else {
-            app = getApp();
-        }
-        const firestore = getFirestore(app);
-        try {
-            await enablePersistentCache(firestore);
-        } catch (err) {
-            console.error("Firebase persistence error", err);
-        }
-        db = firestore;
+function getDb(): Firestore {
+    if (getApps().length === 0) {
+        const firebaseConfig = {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+        initializeApp(firebaseConfig);
     }
-    return db;
+    return getFirestore(getApp());
 }
 
 
@@ -48,7 +35,7 @@ const ADMIN_CONFIG_DOC_ID = 'app_configuration';
 const ADMIN_CONTEXT_COLLECTION = 'admin';
 
 async function getAdminBusinessContext(): Promise<string> {
-    const firestore = await getDb();
+    const firestore = getDb();
     const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
     const docSnap = await getDoc(configDocRef);
     if (docSnap.exists() && docSnap.data()?.adminBusinessContext) {

@@ -1,35 +1,22 @@
 import { NextRequest } from 'next/server';
-import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Firestore, enablePersistentCache } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Firestore } from 'firebase/firestore';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
 // Helper to initialize Firebase SDK for server-side use.
-let db: Firestore | null = null;
-async function getDb() {
-    if (!db) {
-        let app: FirebaseApp;
-        if (!getApps().length) {
-            const firebaseConfig = {
-                apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-                authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-                messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-                appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-            };
-            app = initializeApp(firebaseConfig);
-        } else {
-            app = getApp();
-        }
-        const firestore = getFirestore(app);
-        try {
-            await enablePersistentCache(firestore);
-        } catch (err) {
-            console.error("Firebase persistence error", err);
-        }
-        db = firestore;
+function getDb(): Firestore {
+    if (getApps().length === 0) {
+        const firebaseConfig = {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+        initializeApp(firebaseConfig);
     }
-    return db;
+    return getFirestore(getApp());
 }
 
 
@@ -110,7 +97,7 @@ async function handleMessage(sender_psid: string, page_id: string, received_mess
 
     let userId = '';
     let businessContext = '';
-    const firestore = await getDb();
+    const firestore = getDb();
 
     try {
         console.log(`[FIREBASE] Searching for user with Facebook Page ID: ${page_id}`);
