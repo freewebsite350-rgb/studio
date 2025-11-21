@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
       // Respond with the challenge token from the request
       console.log('WEBHOOK_VERIFIED');
       // IMPORTANT: Facebook expects a plain-text response with the challenge value.
-      return new NextResponse(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
+      // Use the primitive Response object to ensure a plain text response.
+      return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
     } else {
       // Respond with '403 Forbidden' if verify tokens do not match
       console.error('Webhook verification failed: Verify tokens do not match.');
