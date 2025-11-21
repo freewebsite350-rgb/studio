@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -101,6 +102,14 @@ export function OnboardingWizard() {
              <div className="space-y-2">
               <Label htmlFor="whatsapp-number">WhatsApp Business Number</Label>
               <Input id="whatsapp-number" placeholder="+267 71 234 567 or +27 82 123 4567" />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="facebook-page">Facebook Page (Optional)</Label>
+                <Input id="facebook-page" placeholder="e.g., facebook.com/AwesomeShoes" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="instagram-handle">Instagram Handle (Optional)</Label>
+                <Input id="instagram-handle" placeholder="e.g., @AwesomeShoes" />
             </div>
           </div>
         )}
