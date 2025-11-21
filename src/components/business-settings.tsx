@@ -8,9 +8,8 @@ import { Loader2 } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase/provider';
 import { doc, onSnapshot, setDoc, serverTimestamp, Firestore } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 export function BusinessSettings() {
   const [isLoading, setIsLoading] = useState(false);
