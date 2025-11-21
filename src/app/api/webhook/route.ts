@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, query, limit, getDocs } from 'firebase/firestore';
 import { initializeApp, getApp, App } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
@@ -59,12 +59,20 @@ export async function POST(request: NextRequest) {
 
     if (body.object === 'page') {
       for (const entry of body.entry) {
+        // Gets the message. entry.messaging is an array, but 
+        // will only ever contain one message, so we get index 0
         const webhook_event = entry.messaging[0];
-        console.log(webhook_event);
+        console.log('[FB WEBHOOK] Processing event:', webhook_event);
 
         const sender_psid = webhook_event.sender.id;
         
+        // Check if the event is a message or postback and handle them
         if (webhook_event.message) {
+          // Ignore echoes from the bot itself
+          if (webhook_event.message.is_echo) {
+            console.log('[FB WEBHOOK] Ignoring echo message.');
+            continue;
+          }
           await handleMessage(sender_psid, webhook_event.message);
         }
       }
@@ -83,34 +91,38 @@ export async function POST(request: NextRequest) {
 
 async function handleMessage(sender_psid: string, received_message: any) {
     if (!received_message.text) {
+        console.log('[FB WEBHOOK] Received message without text, ignoring.');
         return;
     }
 
-    // This is a placeholder for mapping a PSID to your app's user ID.
-    // In a real app, you would have a database that stores this mapping
-    // when a user authenticates and connects their Facebook Page.
-    // For now, we will use the first user found in the database.
+    // In a real app, you would have a database that stores a mapping
+    // from a PSID to your app's user ID. For this demo, we'll find the
+    // first user in the database and use their context.
     // THIS IS NOT A PRODUCTION-READY SOLUTION.
-    const userId = "lQ5t2h1sZ5Yg9t3rE8a2Vb1v1y2"; // HARDCODED for now
+    let userId = '';
+    let businessContext = '';
 
     try {
-        const userDocRef = doc(db, 'users', userId);
-        const userDoc = await getDoc(userDocRef);
+        const usersQuery = query(collection(db, 'users'), limit(1));
+        const querySnapshot = await getDocs(usersQuery);
 
-        if (!userDoc.exists()) {
-            console.error(`No user document found for hardcoded userId: ${userId}`);
-            await callSendAPI(sender_psid, { text: "I'm sorry, I can't find the business information for this chat." });
-            return;
+        if (querySnapshot.empty) {
+             console.error('[FIREBASE] No user documents found in the database.');
+             await callSendAPI(sender_psid, { text: "I'm sorry, I can't find any business information to help you." });
+             return;
         }
 
-        const businessContext = userDoc.data()?.businessContext;
+        const userDoc = querySnapshot.docs[0];
+        userId = userDoc.id;
+        businessContext = userDoc.data()?.businessContext;
 
         if (!businessContext) {
-            console.error(`User ${userId} does not have businessContext set.`);
+            console.error(`[FIREBASE] User ${userId} does not have businessContext set.`);
             await callSendAPI(sender_psid, { text: "I'm sorry, the AI assistant for this business has not been configured yet." });
             return;
         }
-
+        
+        console.log(`[AI] Generating response for user ${userId} with question: "${received_message.text}"`);
         const aiResponse = await getPolicyAnswer({
             customer_question: received_message.text,
             business_context: businessContext,
@@ -120,7 +132,7 @@ async function handleMessage(sender_psid: string, received_message: any) {
         await callSendAPI(sender_psid, { text: aiResponse.answer });
 
     } catch (error: any) {
-        console.error('Error handling message:', error.message);
+        console.error('[AI/FIREBASE ERROR] Error handling message:', error);
         await callSendAPI(sender_psid, { text: "Sorry, I ran into a problem trying to respond. Please try again later." });
     }
 }
@@ -134,6 +146,7 @@ async function callSendAPI(sender_psid: string, response: any) {
   };
 
   const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+  console.log('[SEND API] Calling Graph API to send message...');
 
   try {
     const res = await fetch(url, {
@@ -144,7 +157,11 @@ async function callSendAPI(sender_psid: string, response: any) {
       body: JSON.stringify(request_body),
     });
     const data = await res.json();
-    console.log('[SEND API] Response:', data);
+    if(data.error) {
+        console.error('[SEND API] Error response from Facebook:', data.error);
+    } else {
+        console.log('[SEND API] Successfully sent message:', data);
+    }
   } catch(error: any) {
     console.error('[SEND API] Unable to send message:' + error.message);
   }
