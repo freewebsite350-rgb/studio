@@ -21,13 +21,17 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased h-full">
         <SidebarProvider>
-          <Sidebar>
-            <AppSidebar />
-          </Sidebar>
-          <SidebarInset>
-            {children}
-            <Toaster />
-          </SidebarInset>
+          <div vaul-drawer-wrapper="">
+            <div className="relative flex min-h-screen flex-col bg-background">
+              <Sidebar>
+                <AppSidebar />
+              </Sidebar>
+              <SidebarInset>
+                {children}
+              </SidebarInset>
+            </div>
+          </div>
+          <Toaster />
         </SidebarProvider>
       </body>
     </html>

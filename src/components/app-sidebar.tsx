@@ -9,7 +9,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Bot, Camera, Package, LogOut, BarChart2 } from 'lucide-react';
+import { Bot, Camera, Package, UserPlus, BarChart2 } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -79,9 +79,11 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <Button variant="ghost">
-          <LogOut className="mr-2" />
-          Logout
+        <Button variant="ghost" asChild>
+          <Link href="/onboarding">
+            <UserPlus className="mr-2" />
+            Sign Up
+          </Link>
         </Button>
       </SidebarFooter>
     </>
