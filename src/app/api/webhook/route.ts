@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 
-const VERIFY_TOKEN = 'retail-assist-token';
+const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
 
 /**
  * Handles the webhook verification request from Meta.
