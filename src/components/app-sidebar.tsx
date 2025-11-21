@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Bot, Camera, Package, UserPlus, BarChart2, LayoutDashboard, Shield, LifeBuoy, Cog } from 'lucide-react';
+import { Bot, Camera, Package, UserPlus, BarChart2, LayoutDashboard, Shield, LifeBuoy, Cog, Code } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -101,6 +101,18 @@ export function AppSidebar() {
                 <LifeBuoy />
                 <span>Support AI</span>
               </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+                asChild
+                isActive={pathname === '/website-integration'}
+                tooltip={{ children: 'Website Integration' }}
+            >
+                <Link href="/website-integration">
+                    <Code />
+                    <span>Website</span>
+                </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
