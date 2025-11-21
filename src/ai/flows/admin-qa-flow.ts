@@ -8,7 +8,8 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z, generateStream}from 'genkit/stream';
+import {z} from 'zod';
+import {generateStream} from '@genkit-ai/google-genai';
 import { PolicyQaOutput } from './policy-qa-flow';
 import { getFirestore } from 'firebase-admin/firestore';
 import { adminDb } from '@/firebase/admin';
@@ -97,11 +98,13 @@ const adminPolicyQaFlow = ai.defineFlow(
   async (input) => {
     const adminContext = await getAdminBusinessContext();
     
-    const prompt = ai.prompt('adminQaPrompt', {
+    const prompt = ai.definePrompt({
+        name: 'adminQaPrompt',
         prompt: {
-            template: promptTemplateText,
-            input: { schema: PolicyQaInputSchema.extend({ business_context: z.string() }) }
-        }
+            template: promptTemplateText
+        },
+        input: { schema: PolicyQaInputSchema.extend({ business_context: z.string() }) },
+        output: { schema: z.object({ answer: z.string() }) }
     });
 
     const {output} = await prompt({

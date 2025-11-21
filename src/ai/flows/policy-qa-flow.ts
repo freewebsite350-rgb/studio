@@ -10,7 +10,8 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z, generateStream} from 'genkit/stream';
+import {z} from 'zod';
+import {generateStream} from '@genkit-ai/google-genai';
 import { adminDb } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
