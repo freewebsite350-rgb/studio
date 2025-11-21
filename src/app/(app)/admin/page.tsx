@@ -1,3 +1,4 @@
+
 import { AdminDashboard } from '@/components/admin-dashboard';
 import { AppConfig } from '@/lib/app-config';
 import { Shield } from 'lucide-react';

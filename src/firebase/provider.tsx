@@ -5,6 +5,8 @@ import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
 import { initializeFirebase } from './index';
+import { useUser as useAuthCurrentUser } from './auth/use-user';
+
 
 interface FirebaseContextValue {
   app: FirebaseApp;
@@ -32,18 +34,6 @@ export const useFirebase = () => {
   return context;
 };
 
-export const useAuth = () => useFirebase().auth;
+export const useAuthUser = () => useFirebase().auth;
 export const useFirestore = () => useFirebase().firestore;
-export const useUser = () => {
-    const auth = useAuth();
-    const [user, setUser] = React.useState(auth.currentUser);
-
-    React.useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            setUser(user);
-        });
-        return () => unsubscribe();
-    }, [auth]);
-
-    return user;
-};
+export const useUser = useAuthCurrentUser;

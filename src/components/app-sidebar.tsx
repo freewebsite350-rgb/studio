@@ -10,21 +10,35 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Bot, Camera, Package, UserPlus, BarChart2, LayoutDashboard, Shield, LifeBuoy, Cog, Code, ShoppingCart } from 'lucide-react';
+import { Bot, Camera, Package, BarChart2, LayoutDashboard, LifeBuoy, Cog, Code, ShoppingCart, Shield, LogOut } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from './ui/button';
+import { useAuthUser } from '@/firebase';
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const auth = useAuthUser();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    if (auth) {
+        await auth.signOut();
+        router.push('/');
+    }
+  }
+
+  // A simple check to see if the logged-in user is the admin.
+  // In a real app, this would be based on a custom claim or a role in the database.
+  const isAdmin = auth?.currentUser?.email === 'admin@example.com';
 
   return (
     <>
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <SidebarTrigger />
-          <Link href="/">
+          <Link href="/dashboard">
             <h1 className="font-semibold text-lg cursor-pointer">{AppConfig.appName}</h1>
           </Link>
         </div>
@@ -139,35 +153,26 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {isAdmin && (
             <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === '/onboarding'}
-              tooltip={{ children: 'Onboarding' }}
-            >
-              <Link href="/onboarding">
-                <UserPlus />
-                <span>Onboarding</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === '/admin'}
-              tooltip={{ children: 'Admin' }}
-            >
-              <Link href="/admin">
-                <Shield />
-                <span>Admin</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+                <SidebarMenuButton
+                asChild
+                isActive={pathname === '/admin'}
+                tooltip={{ children: 'Admin' }}
+                >
+                <Link href="/admin">
+                    <Shield />
+                    <span>Admin</span>
+                </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-         <Button asChild>
-            <Link href="/onboarding">Get Started</Link>
+         <Button variant="ghost" onClick={handleSignOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
          </Button>
       </SidebarFooter>
     </>

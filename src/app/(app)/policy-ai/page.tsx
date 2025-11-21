@@ -1,3 +1,4 @@
+
 import { PolicyQa } from '@/components/policy-qa';
 import { Bot } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';

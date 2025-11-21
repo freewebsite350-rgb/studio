@@ -1,3 +1,4 @@
+
 import { AnalyticsDashboard } from '@/components/analytics-dashboard';
 import { BarChart2 } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';

@@ -1,3 +1,4 @@
+
 import { VisualSearchForm } from '@/components/visual-search-form';
 import { Camera } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';
