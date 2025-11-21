@@ -1,7 +1,8 @@
+
 import { AppConfig } from '@/lib/app-config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart2, Bot, Camera, LayoutDashboard, Package, Sparkles, MessageCircle, Link as LinkIcon } from 'lucide-react';
+import { BarChart2, Bot, Camera, LayoutDashboard, Package, Sparkles, MessageCircle, Link as LinkIcon, LifeBuoy } from 'lucide-react';
 import Link from 'next/link';
 
 const tools = [
@@ -25,9 +26,15 @@ const tools = [
     },
     {
         title: "Policy AI",
-        description: "Ask your AI assistant questions.",
+        description: "Ask your customer-facing AI assistant.",
         icon: <Bot className="h-8 w-8 text-primary" />,
         href: "/policy-ai"
+    },
+    {
+        title: "Support AI",
+        description: "Ask us questions about this product.",
+        icon: <LifeBuoy className="h-8 w-8 text-primary" />,
+        href: "/support-ai"
     }
 ]
 
@@ -97,7 +104,7 @@ export default function DashboardPage() {
       {/* Tools Section */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Your Tools</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {tools.map((tool) => (
                  <Card key={tool.href} className="hover:shadow-lg hover:-translate-y-1 transition-all">
                     <CardHeader className="flex-row items-start gap-4">

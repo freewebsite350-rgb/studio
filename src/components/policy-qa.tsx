@@ -14,9 +14,10 @@ interface PolicyQaProps {
     title?: string;
     description?: string;
     qaStreamer?: QAFunction;
+    placeholder?: string;
 }
 
-export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStream }: PolicyQaProps) {
+export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStream, placeholder }: PolicyQaProps) {
     const [question, setQuestion] = useState('');
     const [answer, setAnswer] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +61,7 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
                     <Input 
                         id="question" 
                         name="question" 
-                        placeholder="e.g., How do I connect to WhatsApp?" 
+                        placeholder={placeholder || "e.g., How do I return an electronic item?"}
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleAsk()}

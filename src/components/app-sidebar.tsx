@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Bot, Camera, Package, UserPlus, BarChart2, LayoutDashboard, Shield } from 'lucide-react';
+import { Bot, Camera, Package, UserPlus, BarChart2, LayoutDashboard, Shield, LifeBuoy } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -88,6 +88,18 @@ export function AppSidebar() {
               <Link href="/policy-ai">
                 <Bot />
                 <span>Policy AI</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/support-ai'}
+              tooltip={{ children: 'Support AI' }}
+            >
+              <Link href="/support-ai">
+                <LifeBuoy />
+                <span>Support AI</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
