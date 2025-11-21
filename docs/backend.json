@@ -96,6 +96,18 @@
         }
       },
       "required": ["type", "createdAt"]
+    },
+    "AdminConfig": {
+        "title": "AdminConfig",
+        "type": "object",
+        "description": "Stores global configuration for the application, managed by the admin.",
+        "properties": {
+            "adminBusinessContext": {
+                "type": "string",
+                "description": "The business context for the admin's own support AI."
+            }
+        },
+        "required": ["adminBusinessContext"]
     }
   },
   "auth": {
@@ -119,6 +131,12 @@
         "$ref": "#/entities/Interaction"
       },
       "description": "Stores analytics interactions for each business/user."
+    },
+    "/admin/{configId}": {
+        "schema": {
+            "$ref": "#/entities/AdminConfig"
+        },
+        "description": "Stores global app configuration managed by the admin. There should only be one document in this collection."
     }
   }
 }

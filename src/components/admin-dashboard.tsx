@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,6 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from './ui/badge';
 import { PolicyQa } from './policy-qa';
 import { getAdminPolicyAnswerStream } from '@/ai/flows/admin-qa-flow';
+import { Button } from './ui/button';
+import Link from 'next/link';
+import { Cog } from 'lucide-react';
 
 const mockBusinesses = [
     { name: 'The Awesome Shoe Co.', email: 'contact@awesomeshoe.co', status: 'Active', plan: 'Launch Partner' },
@@ -24,9 +26,17 @@ export function AdminDashboard() {
       </TabsList>
       <TabsContent value="businesses">
         <Card>
-          <CardHeader>
-            <CardTitle>Onboarded Businesses</CardTitle>
-            <CardDescription>A list of all businesses that have signed up for Retail-Assist 3.0.</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle>Onboarded Businesses</CardTitle>
+                <CardDescription>A list of all businesses that have signed up for Retail-Assist 3.0.</CardDescription>
+            </div>
+            <Button asChild variant="outline">
+                <Link href="/admin/settings">
+                    <Cog className="mr-2 h-4 w-4" />
+                    Admin Settings
+                </Link>
+            </Button>
           </CardHeader>
           <CardContent>
             <Table>
@@ -70,4 +80,3 @@ export function AdminDashboard() {
     </Tabs>
   );
 }
-

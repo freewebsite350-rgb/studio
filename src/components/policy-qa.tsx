@@ -6,11 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Sparkles } from 'lucide-react';
-import { getPolicyAnswerStream, PolicyQaInput } from '@/ai/flows/policy-qa-flow';
+import { getPolicyAnswerStream } from '@/ai/flows/policy-qa-flow';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
-type QAFunction = (input: PolicyQaInput) => Promise<ReadableStream<any>>;
+// A generic input type that works for both policy and admin QA
+type QaInput = {
+    customer_question: string;
+    business_context?: string;
+    userId?: string;
+}
+
+type QAFunction = (input: QaInput) => Promise<ReadableStream<any>>;
 
 interface PolicyQaProps {
     title?: string;
@@ -28,44 +35,55 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
     const user = useUser();
     const firestore = useFirestore();
 
-    // Fetch the business context for the logged-in user
+    // Check if the provided streamer function is the admin one.
+    const isAdminStreamer = qaStreamer.name.includes('getAdmin');
+
+    // Fetch the business context for the logged-in user if it's not the admin streamer
     useEffect(() => {
-        if (user && firestore && !qaStreamer.name.includes('getAdmin')) {
+        if (user && firestore && !isAdminStreamer) {
             const userDocRef = doc(firestore, 'users', user.uid);
             const unsubscribe = onSnapshot(userDocRef, (doc) => {
                 if (doc.exists()) {
                     setBusinessContext(doc.data().businessContext || '');
                 } else {
-                    // This can happen if the user doc isn't created yet
-                    // or if the user is not the business owner.
                     setBusinessContext('');
                 }
             });
             return () => unsubscribe();
         }
-    }, [user, firestore, qaStreamer]);
+    }, [user, firestore, isAdminStreamer]);
 
 
     const handleAsk = async () => {
-        if (!question.trim() || !user) return;
+        if (!question.trim()) return;
 
         setIsLoading(true);
         setAnswer('');
 
         try {
-            // If it's the admin streamer, it doesn't need a business context.
-            // Otherwise, wait until we have a context from Firestore.
-            if (!qaStreamer.name.includes('getAdmin') && businessContext === null) {
+            // For non-admin, wait until we have a context from Firestore.
+            if (!isAdminStreamer && businessContext === null) {
                 setAnswer('Initializing your AI assistant... Please wait a moment and try again.');
                 setIsLoading(false);
                 return;
             }
 
-            const stream = await qaStreamer({ 
+            const input: QaInput = {
                 customer_question: question,
-                business_context: businessContext!, // Can be empty string, but must be provided
-                userId: user.uid,
-            });
+            };
+
+            // Only add business_context and userId if they are relevant
+            if (!isAdminStreamer) {
+                if (!user) {
+                     setAnswer('You must be logged in to ask the AI.');
+                     setIsLoading(false);
+                     return;
+                }
+                input.business_context = businessContext!;
+                input.userId = user.uid;
+            }
+
+            const stream = await qaStreamer(input);
             
             const reader = stream.getReader();
             const decoder = new TextDecoder();
@@ -87,8 +105,7 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
         }
     };
     
-    // Disable form if it's not the admin bot and the context is not yet loaded.
-    const isReady = qaStreamer.name.includes('getAdmin') || businessContext !== null;
+    const isReady = isAdminStreamer || businessContext !== null;
 
 
     return (
