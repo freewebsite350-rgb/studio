@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Sparkles } from 'lucide-react';
 import { getPolicyAnswerStream, PolicyQaInput } from '@/ai/flows/policy-qa-flow';
-import { useUser, useFirestore } from '@/firebase/provider';
+import { useUser, useFirestore } from '@/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 type QAFunction = (input: PolicyQaInput) => Promise<ReadableStream<any>>;
