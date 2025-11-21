@@ -6,6 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { BarChart2, Bot, Camera, LayoutDashboard, Package, Sparkles, MessageCircle, Link as LinkIcon, LifeBuoy } from 'lucide-react';
 import Link from 'next/link';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const tools = [
     {
@@ -40,6 +44,13 @@ const tools = [
     }
 ]
 
+type UserProfile = {
+    businessName?: string;
+    whatsappNumber?: string;
+    facebookPage?: string;
+    instagramHandle?: string;
+}
+
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
@@ -55,12 +66,35 @@ const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function DashboardPage() {
+    const user = useUser();
+    const firestore = useFirestore();
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (user && firestore) {
+            setIsLoading(true);
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const unsubscribe = onSnapshot(userDocRef, (doc) => {
+                if (doc.exists()) {
+                    setUserProfile(doc.data() as UserProfile);
+                } else {
+                    setUserProfile({});
+                }
+                setIsLoading(false);
+            });
+            return () => unsubscribe();
+        } else if (!user) {
+            setIsLoading(false);
+        }
+    }, [user, firestore]);
+
   return (
     <main className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-4 mb-8">
         <LayoutDashboard className="h-8 w-8" />
         <div>
-            <h1 className="text-2xl font-semibold">Welcome Back!</h1>
+            <h1 className="text-2xl font-semibold">Welcome Back, {isLoading ? <Skeleton className="h-8 w-48 inline-block" /> : userProfile?.businessName || 'User'}!</h1>
             <p className="text-muted-foreground">Here's a quick overview of your business.</p>
         </div>
       </div>
@@ -112,13 +146,24 @@ export default function DashboardPage() {
                     <CardDescription>Connection status for clients</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-md">
-                         <span className="font-semibold text-destructive">Not Connected</span>
-                         <Button size="sm">
-                            <LinkIcon className="mr-2 h-4 w-4" />
-                            Connect
-                        </Button>
-                    </div>
+                    {isLoading ? <Skeleton className="h-10 w-full" /> : (
+                        userProfile?.whatsappNumber ? (
+                            <div className="flex items-center justify-between p-3 bg-green-600/10 rounded-md">
+                                <span className="font-semibold text-green-700 dark:text-green-400">Connected</span>
+                                <Button size="sm" variant="ghost" asChild><Link href="/settings">Manage</Link></Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-md">
+                                <span className="font-semibold text-destructive">Not Connected</span>
+                                <Button size="sm" asChild>
+                                    <Link href="/settings">
+                                        <LinkIcon className="mr-2 h-4 w-4" />
+                                        Connect
+                                    </Link>
+                                </Button>
+                            </div>
+                        )
+                    )}
                 </CardContent>
             </Card>
             <Card className="border-primary/20 bg-primary/5">
@@ -130,13 +175,24 @@ export default function DashboardPage() {
                     <CardDescription>Connection status for Messenger</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-md">
-                         <span className="font-semibold text-destructive">Not Connected</span>
-                         <Button size="sm">
-                            <LinkIcon className="mr-2 h-4 w-4" />
-                            Connect
-                        </Button>
-                    </div>
+                     {isLoading ? <Skeleton className="h-10 w-full" /> : (
+                        userProfile?.facebookPage ? (
+                            <div className="flex items-center justify-between p-3 bg-green-600/10 rounded-md">
+                                <span className="font-semibold text-green-700 dark:text-green-400">Connected</span>
+                                 <Button size="sm" variant="ghost" asChild><Link href="/settings">Manage</Link></Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-md">
+                                <span className="font-semibold text-destructive">Not Connected</span>
+                                <Button size="sm" asChild>
+                                    <Link href="/settings">
+                                        <LinkIcon className="mr-2 h-4 w-4" />
+                                        Connect
+                                    </Link>
+                                </Button>
+                            </div>
+                        )
+                    )}
                 </CardContent>
             </Card>
             <Card className="border-primary/20 bg-primary/5">
@@ -148,13 +204,24 @@ export default function DashboardPage() {
                     <CardDescription>Connection status for DMs</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-md">
-                         <span className="font-semibold text-destructive">Not Connected</span>
-                         <Button size="sm">
-                            <LinkIcon className="mr-2 h-4 w-4" />
-                            Connect
-                        </Button>
-                    </div>
+                    {isLoading ? <Skeleton className="h-10 w-full" /> : (
+                        userProfile?.instagramHandle ? (
+                            <div className="flex items-center justify-between p-3 bg-green-600/10 rounded-md">
+                                <span className="font-semibold text-green-700 dark:text-green-400">Connected</span>
+                                 <Button size="sm" variant="ghost" asChild><Link href="/settings">Manage</Link></Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-md">
+                                <span className="font-semibold text-destructive">Not Connected</span>
+                                <Button size="sm" asChild>
+                                    <Link href="/settings">
+                                        <LinkIcon className="mr-2 h-4 w-4" />
+                                        Connect
+                                    </Link>
+                                </Button>
+                            </div>
+                        )
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -187,3 +254,5 @@ export default function DashboardPage() {
     </main>
   );
 }
+
+    
