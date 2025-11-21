@@ -131,6 +131,9 @@ export function LoginForm() {
                             <Link href="/onboarding">Sign up</Link>
                         </Button>
                     </p>
+                    <Button variant="link" className="p-0 h-auto" asChild>
+                        <Link href="/admin">Admin</Link>
+                    </Button>
                 </CardFooter>
             </form>
         </Form>
