@@ -3,30 +3,17 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Search, Upload, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { findSimilarProducts, VisualSearchOutput } from '@/ai/flows/visual-search-flow';
 
-type MockResult = {
-  id: string;
-  name: string;
-  price: string;
-  imageUrl: string;
-  score: number;
-};
-
-const mockResults: MockResult[] = [
-  { id: '1', name: 'Classic Leather Biker Jacket', price: 'R2,499', imageUrl: PlaceHolderImages[0].imageUrl, score: 95 },
-  { id: '2', name: 'Faux Leather Bomber Jacket', price: 'R1,899', imageUrl: 'https://picsum.photos/seed/201/600/600', score: 88 },
-  { id: '3', name: 'Suede Moto Jacket', price: 'R2,799', imageUrl: 'https://picsum.photos/seed/202/600/600', score: 85 },
-];
+type SearchResult = VisualSearchOutput['products'][0];
 
 export function VisualSearchForm() {
     const [preview, setPreview] = useState<string | null>(null);
     const [isSearching, setIsSearching] = useState(false);
-    const [results, setResults] = useState<MockResult[] | null>(null);
+    const [results, setResults] = useState<SearchResult[] | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,10 +32,15 @@ export function VisualSearchForm() {
         if (!preview) return;
         setIsSearching(true);
         
-        await new Promise(resolve => setTimeout(resolve, 2500));
-
-        setResults(mockResults);
-        setIsSearching(false);
+        try {
+            const response = await findSimilarProducts({ photoDataUri: preview });
+            setResults(response.products);
+        } catch (error) {
+            console.error("Error finding similar products:", error);
+            // Optionally, show a toast or error message to the user
+        } finally {
+            setIsSearching(false);
+        }
     };
     
     const handleUploadClick = () => {
@@ -71,28 +63,37 @@ export function VisualSearchForm() {
                     <CardDescription>We found these products based on your image.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {results.map((item) => (
-                            <Card key={item.id} className="overflow-hidden">
-                                <CardContent className="p-0">
-                                    <div className="relative aspect-square w-full">
-                                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                                        <div className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs font-bold py-1 px-2 rounded-full">
-                                            {item.score}% Match
+                    {results.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {results.map((item) => (
+                                <Card key={item.productUrl} className="overflow-hidden">
+                                    <CardContent className="p-0">
+                                        <div className="relative aspect-square w-full">
+                                            <Image src={item.imageUrl} alt={item.productName} fill className="object-cover" />
+                                            <div className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs font-bold py-1 px-2 rounded-full">
+                                                {item.matchScore}% Match
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="p-4">
-                                        <h3 className="font-semibold text-sm truncate">{item.name}</h3>
-                                        <p className="text-muted-foreground text-sm">{item.price}</p>
-                                         <Button variant="outline" size="sm" className="w-full mt-2">
-                                            <ExternalLink className="mr-2 h-4 w-4" />
-                                            View Product
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+                                        <div className="p-4">
+                                            <h3 className="font-semibold text-sm truncate">{item.productName}</h3>
+                                            <p className="text-muted-foreground text-sm">{item.currency}{item.price}</p>
+                                            <Button asChild variant="outline" size="sm" className="w-full mt-2">
+                                                <a href={item.productUrl} target="_blank" rel="noopener noreferrer">
+                                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                                    View Product
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : (
+                         <div className="text-center py-8 text-muted-foreground">
+                            <p>No similar products found.</p>
+                            <p className="text-xs">Try a different image for better results.</p>
+                        </div>
+                    )}
                 </CardContent>
                 <CardFooter>
                     <Button variant="outline" onClick={handleReset} className="w-full">
