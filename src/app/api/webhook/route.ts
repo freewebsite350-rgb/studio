@@ -6,6 +6,7 @@ import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
 
 const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
+const PAGE_ID = process.env.NEXT_PUBLIC_FB_PAGE_ID;
 
 // Initialize Firebase
 let app: App;
@@ -59,20 +60,12 @@ export async function POST(request: NextRequest) {
 
     if (body.object === 'page') {
       for (const entry of body.entry) {
-        // Gets the message. entry.messaging is an array, but 
-        // will only ever contain one message, so we get index 0
         const webhook_event = entry.messaging[0];
         console.log('[FB WEBHOOK] Processing event:', webhook_event);
 
         const sender_psid = webhook_event.sender.id;
         
-        // Check if the event is a message or postback and handle them
-        if (webhook_event.message) {
-          // Ignore echoes from the bot itself
-          if (webhook_event.message.is_echo) {
-            console.log('[FB WEBHOOK] Ignoring echo message.');
-            continue;
-          }
+        if (webhook_event.message && !webhook_event.message.is_echo) {
           await handleMessage(sender_psid, webhook_event.message);
         }
       }
@@ -103,11 +96,12 @@ async function handleMessage(sender_psid: string, received_message: any) {
     let businessContext = '';
 
     try {
+        console.log('[FIREBASE] Searching for user data to provide context...');
         const usersQuery = query(collection(db, 'users'), limit(1));
         const querySnapshot = await getDocs(usersQuery);
 
         if (querySnapshot.empty) {
-             console.error('[FIREBASE] No user documents found in the database.');
+             console.error('[FIREBASE] CRITICAL: No user documents found in the database. Cannot get business context.');
              await callSendAPI(sender_psid, { text: "I'm sorry, I can't find any business information to help you." });
              return;
         }
@@ -115,6 +109,7 @@ async function handleMessage(sender_psid: string, received_message: any) {
         const userDoc = querySnapshot.docs[0];
         userId = userDoc.id;
         businessContext = userDoc.data()?.businessContext;
+        console.log(`[FIREBASE] Using context from user: ${userId}`);
 
         if (!businessContext) {
             console.error(`[FIREBASE] User ${userId} does not have businessContext set.`);
@@ -131,13 +126,18 @@ async function handleMessage(sender_psid: string, received_message: any) {
 
         await callSendAPI(sender_psid, { text: aiResponse.answer });
 
-    } catch (error: any) {
+    } catch (error: any)
+    {
         console.error('[AI/FIREBASE ERROR] Error handling message:', error);
         await callSendAPI(sender_psid, { text: "Sorry, I ran into a problem trying to respond. Please try again later." });
     }
 }
 
 async function callSendAPI(sender_psid: string, response: any) {
+  if (!PAGE_ID) {
+    console.error('[SEND API] ERROR: NEXT_PUBLIC_FB_PAGE_ID environment variable not set.');
+    return;
+  }
   const request_body = {
     recipient: {
       id: sender_psid,
@@ -145,7 +145,7 @@ async function callSendAPI(sender_psid: string, response: any) {
     message: response,
   };
 
-  const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+  const url = `https://graph.facebook.com/v19.0/${PAGE_ID}/messages?access_token=${PAGE_ACCESS_TOKEN}`;
   console.log('[SEND API] Calling Graph API to send message...');
 
   try {
