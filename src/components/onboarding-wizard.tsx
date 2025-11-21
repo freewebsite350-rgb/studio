@@ -98,6 +98,10 @@ export function OnboardingWizard() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" />
             </div>
+             <div className="space-y-2">
+              <Label htmlFor="whatsapp-number">WhatsApp Business Number</Label>
+              <Input id="whatsapp-number" placeholder="+267 71 234 567 or +27 82 123 4567" />
+            </div>
           </div>
         )}
         {step === 2 && (
@@ -131,7 +135,7 @@ export function OnboardingWizard() {
                 </div>
                  <div className="flex items-center space-x-3">
                     <Checkbox id="policy-ai" defaultChecked />
-                    <Label htmlFor="policy-ai" className="flex flex-col">
+                     <Label htmlFor="policy-ai" className="flex flex-col">
                         <span>Enable Policy/FAQ AI</span>
                          <span className="text-xs text-muted-foreground">Let customers ask questions about your business.</span>
                     </Label>

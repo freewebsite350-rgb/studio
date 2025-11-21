@@ -90,6 +90,18 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+            <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/onboarding'}
+              tooltip={{ children: 'Onboarding' }}
+            >
+              <Link href="/onboarding">
+                <UserPlus />
+                <span>Onboarding</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
