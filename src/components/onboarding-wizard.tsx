@@ -9,14 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, BadgeCheck } from 'lucide-react';
+import { Loader2, BadgeCheck, HelpCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import Link from 'next/link';
 import { Textarea } from './ui/textarea';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 import { useAuthUser, useFirestore } from '@/firebase/provider';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -29,6 +29,7 @@ const step1Schema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters.'),
   whatsappNumber: z.string().min(1, 'WhatsApp number is required.'),
   facebookPage: z.string().optional(),
+  facebookPageId: z.string().optional(),
   instagramHandle: z.string().optional(),
 });
 
@@ -59,6 +60,7 @@ export function OnboardingWizard() {
         password: '123456',
         whatsappNumber: '',
         facebookPage: '',
+        facebookPageId: '',
         instagramHandle: '',
     }
   });
@@ -111,6 +113,7 @@ export function OnboardingWizard() {
             businessContext: finalData.businessContext,
             whatsappNumber: finalData.whatsappNumber,
             facebookPage: finalData.facebookPage || '',
+            facebookPageId: finalData.facebookPageId || '',
             instagramHandle: finalData.instagramHandle || '',
             createdAt: serverTimestamp(),
         });
@@ -202,8 +205,19 @@ export function OnboardingWizard() {
                         )} />
                         <FormField control={step1Form.control} name="facebookPage" render={({ field }) => (
                              <FormItem>
-                                <FormLabel>Facebook Page (Optional)</FormLabel>
+                                <FormLabel>Facebook Page URL (Optional)</FormLabel>
                                 <FormControl><Input placeholder="e.g., facebook.com/AwesomeShoes" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                         <FormField control={step1Form.control} name="facebookPageId" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Facebook Page ID (Optional)</FormLabel>
+                                <FormControl><Input placeholder="e.g. 123456789012345" {...field} /></FormControl>
+                                 <FormDescription className="flex items-center gap-1 text-xs pt-1">
+                                    <HelpCircle className="h-3 w-3"/>
+                                    Find this in your Page's "About" &gt; "Page Transparency" section.
+                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )} />
