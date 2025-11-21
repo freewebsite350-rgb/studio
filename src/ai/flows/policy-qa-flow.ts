@@ -9,8 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import {generateStream} from 'genkit/generate';
+import {z, generateStream} from 'genkit';
 
 const PolicyQaInputSchema = z.object({
   customer_question: z.string().describe("The customer's question about the return policy."),
