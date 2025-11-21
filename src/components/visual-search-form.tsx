@@ -5,17 +5,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Search, Upload } from 'lucide-react';
+import { Loader2, Search, Upload, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+type MockResult = {
+  id: string;
+  name: string;
+  price: string;
+  imageUrl: string;
+  score: number;
+};
+
+const mockResults: MockResult[] = [
+  { id: '1', name: 'Classic Leather Biker Jacket', price: 'R2,499', imageUrl: PlaceHolderImages[0].imageUrl, score: 95 },
+  { id: '2', name: 'Faux Leather Bomber Jacket', price: 'R1,899', imageUrl: 'https://picsum.photos/seed/201/600/600', score: 88 },
+  { id: '3', name: 'Suede Moto Jacket', price: 'R2,799', imageUrl: 'https://picsum.photos/seed/202/600/600', score: 85 },
+];
 
 export function VisualSearchForm() {
     const [preview, setPreview] = useState<string | null>(null);
     const [isSearching, setIsSearching] = useState(false);
+    const [results, setResults] = useState<MockResult[] | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
+            setResults(null);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPreview(reader.result as string);
@@ -26,23 +43,64 @@ export function VisualSearchForm() {
 
     const handleSearch = async () => {
         if (!preview) return;
-
         setIsSearching(true);
+        
+        await new Promise(resolve => setTimeout(resolve, 2500));
 
-        // Here is where you would make an API call to a Genkit flow
-        // For example:
-        // const result = await visualSearchFlow({ image: preview });
-        // console.log(result);
-
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
+        setResults(mockResults);
         setIsSearching(false);
-        // TODO: Display search results
     };
     
     const handleUploadClick = () => {
         fileInputRef.current?.click();
+    };
+
+    const handleReset = () => {
+        setPreview(null);
+        setResults(null);
+        if(fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    }
+
+    if (results) {
+        return (
+             <Card className="w-full shadow-lg">
+                <CardHeader>
+                    <CardTitle>Search Results</CardTitle>
+                    <CardDescription>We found these products based on your image.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {results.map((item) => (
+                            <Card key={item.id} className="overflow-hidden">
+                                <CardContent className="p-0">
+                                    <div className="relative aspect-square w-full">
+                                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                                        <div className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs font-bold py-1 px-2 rounded-full">
+                                            {item.score}% Match
+                                        </div>
+                                    </div>
+                                    <div className="p-4">
+                                        <h3 className="font-semibold text-sm truncate">{item.name}</h3>
+                                        <p className="text-muted-foreground text-sm">{item.price}</p>
+                                         <Button variant="outline" size="sm" className="w-full mt-2">
+                                            <ExternalLink className="mr-2 h-4 w-4" />
+                                            View Product
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button variant="outline" onClick={handleReset} className="w-full">
+                        Start New Search
+                    </Button>
+                </CardFooter>
+            </Card>
+        )
     }
 
     return (
@@ -53,17 +111,19 @@ export function VisualSearchForm() {
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
-                    <Label htmlFor="product-photo">Product Photo</Label>
                     <Input id="product-photo" type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                     
                     {preview ? (
                         <div className="relative group w-full aspect-square border-2 border-dashed rounded-lg flex items-center justify-center">
-                            <Image src={preview} alt="Product preview" fill className="object-contain rounded-lg" />
+                            <Image src={preview} alt="Product preview" fill className="object-contain rounded-lg p-2" />
                             <div 
-                                className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-lg"
                                 onClick={handleUploadClick}
                             >
-                                <span className="text-white font-semibold">Change Photo</span>
+                                <div className="text-center text-white">
+                                    <Upload className="h-8 w-8 mx-auto mb-2"/>
+                                    <span className="font-semibold">Change Photo</span>
+                                </div>
                             </div>
                         </div>
 
@@ -73,7 +133,7 @@ export function VisualSearchForm() {
                             onClick={handleUploadClick}
                         >
                             <Upload className="h-8 w-8 mb-2" />
-                            <span>Click to upload</span>
+                            <span>Click to upload image</span>
                         </div>
                     )}
                 </div>

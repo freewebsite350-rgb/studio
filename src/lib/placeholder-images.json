@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "black-leather-jacket",
+      "description": "A stylish black leather jacket.",
+      "imageUrl": "https://images.unsplash.com/photo-1527016021513-b09758b777bd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YmxhY2slMjBqYWNrZXR8ZW58MHx8fHwxNzYzNzAxODk5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "black jacket"
+    },
+    {
+      "id": "blue-denim-jeans",
+      "description": "A pair of classic blue denim jeans.",
+      "imageUrl": "https://images.unsplash.com/photo-1588544622467-6df9eef29c7a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxibHVlJTIwamVhbnN8ZW58MHx8fHwxNzYzNjExMDU2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blue jeans"
+    },
+    {
+      "id": "white-sneakers",
+      "description": "A pair of clean white sneakers.",
+      "imageUrl": "https://images.unsplash.com/photo-1608231387042-66d1773070a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3aGl0ZSUyMHNob2VzfGVufDB8fHx8MTc2MzcwMTkwMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "white shoes"
+    },
+    {
+      "id": "red-floral-dress",
+      "description": "A vibrant red floral dress.",
+      "imageUrl": "https://images.unsplash.com/photo-1542892770-3e6a09c7a7da?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cmVkJTIwZHJlc3N8ZW58MHx8fHwxNzYzNjM0MjU2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "red dress"
+    }
+  ]
 }
