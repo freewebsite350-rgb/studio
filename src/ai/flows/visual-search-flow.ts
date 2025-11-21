@@ -11,10 +11,10 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getFirestore, collection, getDocs, query, addDoc, serverTimestamp, Firestore } from 'firebase/firestore';
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
 
 // Helper to get a Firestore instance for server-side use.
-// It initializes a new app for each request to avoid connection state issues in a serverless environment.
+// It initializes a new, uniquely named app for each request to avoid connection state issues in a serverless environment.
 function getDb(): Firestore {
     const firebaseConfig = {
         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -25,7 +25,7 @@ function getDb(): Firestore {
         appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     };
     // Use a unique app name for each initialization to avoid conflicts
-    const appName = `server-app-${Date.now()}-${Math.random()}`;
+    const appName = `server-app-visual-search-${Date.now()}-${Math.random()}`;
     const app = initializeApp(firebaseConfig, appName);
     return getFirestore(app);
 }
@@ -88,17 +88,24 @@ const prompt = ai.definePrompt({
 async function getProductsForUser(userId: string) {
     const firestore = getDb();
     const products = [];
-    const productsCollectionRef = collection(firestore, 'users', userId, 'products');
-    const querySnapshot = await getDocs(productsCollectionRef);
-    for (const doc of querySnapshot.docs) {
-        const data = doc.data();
-        products.push({
-            productName: data.productName,
-            price: data.price,
-            currency: data.currency,
-            imageUrl: data.imageUrl,
-            productUrl: data.productUrl,
-        });
+    try {
+        const productsCollectionRef = collection(firestore, 'users', userId, 'products');
+        const querySnapshot = await getDocs(productsCollectionRef);
+        for (const doc of querySnapshot.docs) {
+            const data = doc.data();
+            products.push({
+                productName: data.productName,
+                price: data.price,
+                currency: data.currency,
+                imageUrl: data.imageUrl,
+                productUrl: data.productUrl,
+            });
+        }
+    } catch(e) {
+        console.error("Error fetching products for visual search:", e);
+    } finally {
+        // Clean up the temporary app instance after use
+        await deleteApp(firestore.app);
     }
     return products;
 }
@@ -118,17 +125,25 @@ const visualSearchFlow = ai.defineFlow(
         productCatalogJson: catalogJson
     });
     
-    const firestore = getDb();
+    
     if (output && output.products.length > 0 && input.userId) {
+        const firestore = getDb();
         const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
-        await addDoc(interactionsRef, {
-            type: 'VISUAL_SEARCH',
-            details: {
-                resultCount: output.products.length,
-                topMatch: output.products[0].productName,
-            },
-            createdAt: serverTimestamp(),
-        });
+        try {
+            await addDoc(interactionsRef, {
+                type: 'VISUAL_SEARCH',
+                details: {
+                    resultCount: output.products.length,
+                    topMatch: output.products[0].productName,
+                },
+                createdAt: serverTimestamp(),
+            });
+        } catch(e) {
+            console.error("Error logging visual search interaction:", e);
+        } finally {
+            // Clean up the temporary app instance after use
+            await deleteApp(firestore.app);
+        }
     }
 
 

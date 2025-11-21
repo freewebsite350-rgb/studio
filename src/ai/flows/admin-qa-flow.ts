@@ -11,14 +11,14 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { PolicyQaOutput } from './policy-qa-flow';
 import { getFirestore, doc, getDoc, Firestore } from 'firebase/firestore';
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
 
 
 const ADMIN_CONFIG_DOC_ID = 'app_configuration';
 const ADMIN_CONTEXT_COLLECTION = 'admin';
 
 // Helper to get a Firestore instance for server-side use.
-// It initializes a new app for each request to avoid connection state issues in a serverless environment.
+// It initializes a new, uniquely named app for each request to avoid connection state issues in a serverless environment.
 function getDb(): Firestore {
     const firebaseConfig = {
         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -29,7 +29,7 @@ function getDb(): Firestore {
         appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     };
     // Use a unique app name for each initialization to avoid conflicts
-    const appName = `server-app-${Date.now()}-${Math.random()}`;
+    const appName = `server-app-admin-qa-${Date.now()}-${Math.random()}`;
     const app = initializeApp(firebaseConfig, appName);
     return getFirestore(app);
 }
@@ -40,8 +40,12 @@ async function getAdminBusinessContext(): Promise<string> {
     const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
     const docSnap = await getDoc(configDocRef);
     if (docSnap.exists() && docSnap.data()?.adminBusinessContext) {
+        // Clean up the temporary app instance after use
+        deleteApp(docSnap.firestore.app);
         return docSnap.data()?.adminBusinessContext;
     }
+    // Clean up the temporary app instance after use
+    deleteApp(firestore.app);
     // Return a default fallback if the document doesn't exist
     return "Retail-Assist 3.0 is an AI assistant for small businesses. Please configure its context in the admin settings.";
 }
@@ -72,7 +76,7 @@ export async function getAdminPolicyAnswer(input: AdminQaInput): Promise<PolicyQ
 export async function getAdminPolicyAnswerStream(input: AdminQaInput) {
   const adminContext = await getAdminBusinessContext();
 
-  const {stream} = await ai.generateStream({
+  const {stream} = ai.generateStream({
     model: 'gemini-1.5-flash',
     prompt: {
       template: promptTemplateText,

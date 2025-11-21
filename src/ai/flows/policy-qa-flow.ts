@@ -12,10 +12,10 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getFirestore, addDoc, collection, serverTimestamp, Firestore } from 'firebase/firestore';
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
 
 // Helper to get a Firestore instance for server-side use.
-// It initializes a new app for each request to avoid connection state issues in a serverless environment.
+// It initializes a new, uniquely named app for each request to avoid connection state issues in a serverless environment.
 function getDb(): Firestore {
     const firebaseConfig = {
         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -26,7 +26,7 @@ function getDb(): Firestore {
         appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     };
     // Use a unique app name for each initialization to avoid conflicts
-    const appName = `server-app-${Date.now()}-${Math.random()}`;
+    const appName = `server-app-policy-qa-${Date.now()}-${Math.random()}`;
     const app = initializeApp(firebaseConfig, appName);
     return getFirestore(app);
 }
@@ -68,7 +68,7 @@ export async function getPolicyAnswer(input: PolicyQaInput): Promise<PolicyQaOut
 }
 
 export async function getPolicyAnswerStream(input: PolicyQaInput) {
-  const {stream} = await ai.generateStream({
+  const {stream} = ai.generateStream({
     model: 'gemini-1.5-flash',
     prompt: {
       template: promptTemplate.prompt.template,
@@ -115,14 +115,24 @@ const policyQaFlow = ai.defineFlow(
 
     if (output && input.userId) {
         const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
-        await addDoc(interactionsRef, {
-            type: 'POLICY_QA',
-            details: {
-                question: input.customer_question,
-                answer: output.answer,
-            },
-            createdAt: serverTimestamp(),
-        });
+        try {
+            await addDoc(interactionsRef, {
+                type: 'POLICY_QA',
+                details: {
+                    question: input.customer_question,
+                    answer: output.answer,
+                },
+                createdAt: serverTimestamp(),
+            });
+        } catch (e) {
+            console.error("Error writing interaction to Firestore:", e);
+        } finally {
+            // Clean up the temporary app instance after use
+            await deleteApp(firestore.app);
+        }
+    } else if (firestore) {
+         // Clean up if no interaction was logged
+        await deleteApp(firestore.app);
     }
 
     return output!;
