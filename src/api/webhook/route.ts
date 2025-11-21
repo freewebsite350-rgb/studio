@@ -1,6 +1,25 @@
+
 import { NextRequest } from 'next/server';
+import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Firestore } from 'firebase/firestore';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
-import { adminDb } from '@/firebase/admin';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+
+// Helper to initialize Firebase SDK for server-side use.
+function getDb(): Firestore {
+    if (getApps().length === 0) {
+        const firebaseConfig = {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+        initializeApp(firebaseConfig);
+    }
+    return getFirestore(getApp());
+}
+
 
 const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
@@ -79,13 +98,13 @@ async function handleMessage(sender_psid: string, page_id: string, received_mess
 
     let userId = '';
     let businessContext = '';
-    const firestore = adminDb;
+    const firestore = getDb();
 
     try {
         console.log(`[FIREBASE] Searching for user with Facebook Page ID: ${page_id}`);
-        const usersRef = firestore.collection('users');
-        const q = usersRef.where("facebookPageId", "==", page_id).limit(1);
-        const querySnapshot = await q.get();
+        const usersRef = collection(firestore, 'users');
+        const q = query(usersRef, where("facebookPageId", "==", page_id), limit(1));
+        const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
              console.error(`[FIREBASE] CRITICAL: No user found for pageId ${page_id}. Cannot get business context.`);

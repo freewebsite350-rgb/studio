@@ -11,8 +11,24 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { adminDb } from '@/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, addDoc, collection, serverTimestamp, Firestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+
+// Helper to initialize Firebase SDK for server-side use.
+function getDb(): Firestore {
+    if (getApps().length === 0) {
+        const firebaseConfig = {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+        initializeApp(firebaseConfig);
+    }
+    return getFirestore(getApp());
+}
 
 const PolicyQaInputSchema = z.object({
   customer_question: z.string().describe("The customer's question about the business."),
@@ -94,17 +110,17 @@ const policyQaFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await prompt(input);
+    const firestore = getDb();
 
     if (output && input.userId) {
-        const firestore = adminDb;
-        const interactionsRef = firestore.collection('users').doc(input.userId).collection('interactions');
-        await interactionsRef.add({
+        const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
+        await addDoc(interactionsRef, {
             type: 'POLICY_QA',
             details: {
                 question: input.customer_question,
                 answer: output.answer,
             },
-            createdAt: FieldValue.serverTimestamp(),
+            createdAt: serverTimestamp(),
         });
     }
 

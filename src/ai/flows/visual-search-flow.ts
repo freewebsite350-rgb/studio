@@ -10,9 +10,24 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { adminDb } from '@/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, collection, getDocs, query, addDoc, serverTimestamp, Firestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 
+// Helper to initialize Firebase SDK for server-side use.
+function getDb(): Firestore {
+    if (getApps().length === 0) {
+        const firebaseConfig = {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+        initializeApp(firebaseConfig);
+    }
+    return getFirestore(getApp());
+}
 
 const ProductSchema = z.object({
   productName: z.string().describe('The name of the product.'),
@@ -70,10 +85,10 @@ const prompt = ai.definePrompt({
 
 
 async function getProductsForUser(userId: string) {
-    const firestore = adminDb;
+    const firestore = getDb();
     const products = [];
-    const productsCollectionRef = firestore.collection('users').doc(userId).collection('products');
-    const querySnapshot = await productsCollectionRef.get();
+    const productsCollectionRef = collection(firestore, 'users', userId, 'products');
+    const querySnapshot = await getDocs(productsCollectionRef);
     for (const doc of querySnapshot.docs) {
         const data = doc.data();
         products.push({
@@ -102,16 +117,16 @@ const visualSearchFlow = ai.defineFlow(
         productCatalogJson: catalogJson
     });
     
-    const firestore = adminDb;
+    const firestore = getDb();
     if (output && output.products.length > 0 && input.userId) {
-        const interactionsRef = firestore.collection('users').doc(input.userId).collection('interactions');
-        await interactionsRef.add({
+        const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
+        await addDoc(interactionsRef, {
             type: 'VISUAL_SEARCH',
             details: {
                 resultCount: output.products.length,
                 topMatch: output.products[0].productName,
             },
-            createdAt: FieldValue.serverTimestamp(),
+            createdAt: serverTimestamp(),
         });
     }
 
