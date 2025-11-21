@@ -13,8 +13,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-import { useAuthUser } from '@/firebase/provider';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuthUser, useFirestore } from '@/firebase/provider';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
@@ -29,6 +30,7 @@ export function LoginForm() {
   
   const router = useRouter();
   const auth = useAuthUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const form = useForm<LoginFormData>({
@@ -41,7 +43,7 @@ export function LoginForm() {
 
   const handleLogin = async (data: LoginFormData) => {
     setIsLoading(true);
-    if (!auth) {
+    if (!auth || !firestore) {
         toast({
             variant: "destructive",
             title: "Firebase not initialized",
@@ -55,12 +57,41 @@ export function LoginForm() {
         await signInWithEmailAndPassword(auth, data.email, data.password);
         router.push('/dashboard');
     } catch (error: any) {
-        console.error("Login error:", error);
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: "Invalid email or password. Please try again.",
-        });
+        // If user is not found, create the user and their Firestore record
+        if (error.code === 'auth/user-not-found') {
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+                const user = userCredential.user;
+
+                const userDocRef = doc(firestore, 'users', user.uid);
+                await setDoc(userDocRef, {
+                    uid: user.uid,
+                    email: data.email,
+                    businessName: 'Admin Account',
+                    businessContext: 'This is the admin account for Retail-Assist 3.0.',
+                    createdAt: serverTimestamp(),
+                });
+                
+                // Now that the user is created, push to dashboard.
+                // Firebase automatically signs in the user after creation.
+                router.push('/dashboard');
+
+            } catch (creationError: any) {
+                 console.error("User creation error:", creationError);
+                 toast({
+                     variant: "destructive",
+                     title: "Signup Failed",
+                     description: "Could not create your account. Please try again.",
+                 });
+            }
+        } else {
+            console.error("Login error:", error);
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: error.message || "Invalid email or password. Please try again.",
+            });
+        }
     } finally {
         setIsLoading(false);
     }
