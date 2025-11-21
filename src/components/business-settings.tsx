@@ -1,42 +1,82 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
-
-const MOCK_BUSINESS_CONTEXT = `
-Return Policy:
-
-Our return window is 30 days for most items. Items must be unworn, in their original packaging, and with all tags attached. 
-A full refund will be issued to the original payment method.
-
-Electronics:
-Electronics, such as headphones and cameras, have a 14-day return window. They must be in their original, unopened packaging. If the packaging is opened, a 15% restocking fee will apply. A valid receipt is required for all electronics returns.
-
-Sale Items:
-Items purchased on sale are final and cannot be returned or exchanged.
-`;
+import { useUser } from '@/firebase';
+import { doc, onSnapshot, setDoc, serverTimestamp, Firestore } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 export function BusinessSettings() {
   const [isLoading, setIsLoading] = useState(false);
-  const [context, setContext] = useState(MOCK_BUSINESS_CONTEXT);
+  const [context, setContext] = useState('');
+  const [initialContext, setInitialContext] = useState('');
   const { toast } = useToast();
+  const user = useUser();
+  const firestore = useFirestore();
+
+  useEffect(() => {
+    if (user && firestore) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          setContext(data.businessContext || '');
+          setInitialContext(data.businessContext || '');
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [user, firestore]);
 
   const handleSaveChanges = async () => {
+    if (!user || !firestore) return;
     setIsLoading(true);
-    // In a real app, you'd save this to your database
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    toast({
-        title: 'Settings Saved!',
-        description: 'Your AI assistant has been updated with the new information.',
-    });
+
+    const userDocRef = doc(firestore, 'users', user.uid);
+    try {
+        await setDoc(userDocRef, { 
+            businessContext: context,
+            updatedAt: serverTimestamp() 
+        }, { merge: true });
+
+        toast({
+            title: 'Settings Saved!',
+            description: 'Your AI assistant has been updated with the new information.',
+        });
+    } catch(e) {
+        console.error(e);
+        toast({
+            variant: "destructive",
+            title: 'Uh oh! Something went wrong.',
+            description: 'Could not save your settings. Please try again.',
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
+
+  const hasChanges = context !== initialContext;
+
+  if (!user) {
+    return (
+        <Card className="w-full shadow-lg">
+            <CardHeader>
+                <CardTitle>Business Context</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center justify-center h-48">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+            </CardContent>
+        </Card>
+    );
+  }
 
   return (
     <Card className="w-full shadow-lg">
@@ -59,7 +99,7 @@ export function BusinessSettings() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleSaveChanges} className="w-full" disabled={isLoading}>
+        <Button onClick={handleSaveChanges} className="w-full" disabled={isLoading || !hasChanges}>
           {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Changes...</> : 'Save Changes'}
         </Button>
       </CardFooter>

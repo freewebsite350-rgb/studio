@@ -2,47 +2,133 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, CheckCircle, BadgeCheck } from 'lucide-react';
+import { Loader2, BadgeCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import Link from 'next/link';
 import { Textarea } from './ui/textarea';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+import { useAuth, useFirestore } from '@/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+
+const step1Schema = z.object({
+  businessName: z.string().min(1, 'Business name is required.'),
+  email: z.string().email('Invalid email address.'),
+  password: z.string().min(6, 'Password must be at least 6 characters.'),
+  whatsappNumber: z.string().min(1, 'WhatsApp number is required.'),
+  facebookPage: z.string().optional(),
+  instagramHandle: z.string().optional(),
+});
+
+const step2Schema = z.object({
+    businessContext: z.string().min(20, 'Please provide some context for your business.'),
+});
+
+type Step1Data = z.infer<typeof step1Schema>;
+type Step2Data = z.infer<typeof step2Schema>;
 
 type Step = 1 | 2 | 3 | 4;
 
 export function OnboardingWizard() {
   const [step, setStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<Step1Data & Step2Data>>({});
+  
+  const router = useRouter();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const step1Form = useForm<Step1Data>({
+    resolver: zodResolver(step1Schema),
+    defaultValues: {
+        businessName: '',
+        email: '',
+        password: '',
+        whatsappNumber: '',
+        facebookPage: '',
+        instagramHandle: '',
+    }
+  });
+
+  const step2Form = useForm<Step2Data>({
+      resolver: zodResolver(step2Schema),
+      defaultValues: {
+          businessContext: '',
+      }
+  });
+
 
   const progressValues = { 1: 0, 2: 33, 3: 66, 4: 100 };
 
-  const handleNextStep = () => {
-    if (step === 1) {
-        if (!email.trim()) {
-            setError('Email address is required.');
-            return;
-        }
-        setError(null);
+  const handleStep1Submit = (data: Step1Data) => {
+    setFormData(prev => ({ ...prev, ...data }));
+    setStep(2);
+  };
+
+  const handleStep2Submit = (data: Step2Data) => {
+    setFormData(prev => ({ ...prev, ...data }));
+    setStep(3);
+  };
+
+  const handleFinalSubmit = async () => {
+    setIsLoading(true);
+    if (!auth || !firestore) {
+        toast({
+            variant: "destructive",
+            title: "Firebase not initialized",
+            description: "Please try again later.",
+        });
+        setIsLoading(false);
+        return;
     }
-    if (step < 4) {
-      setStep((prev) => (prev + 1) as Step);
+    
+    const finalData = formData as Step1Data & Step2Data;
+
+    try {
+        // 1. Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, finalData.email, finalData.password);
+        const user = userCredential.user;
+
+        // 2. Save user profile to Firestore
+        const userDocRef = doc(firestore, 'users', user.uid);
+        await setDoc(userDocRef, {
+            uid: user.uid,
+            email: finalData.email,
+            businessName: finalData.businessName,
+            businessContext: finalData.businessContext,
+            whatsappNumber: finalData.whatsappNumber,
+            facebookPage: finalData.facebookPage || '',
+            instagramHandle: finalData.instagramHandle || '',
+            createdAt: serverTimestamp(),
+        });
+        
+        // Don't need to handle features yet as they are not stored in the DB
+        setStep(4);
+    } catch (error: any) {
+        console.error("Onboarding error:", error);
+        toast({
+            variant: "destructive",
+            title: "Onboarding Failed",
+            description: error.message || "An unexpected error occurred. Please try again.",
+        });
+    } finally {
+        setIsLoading(false);
     }
   };
 
-  const handleSaveContext = async () => {
-    setIsLoading(true);
-    // In a real app, you'd save this context to the user's profile in the DB
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    handleNextStep();
-  };
 
   if (step === 4) {
       return (
@@ -64,9 +150,7 @@ export function OnboardingWizard() {
                 </div>
             </CardContent>
              <CardFooter className="flex-col gap-4">
-                <Link href="/dashboard" className="w-full">
-                    <Button className="w-full">Go to Dashboard</Button>
-                </Link>
+                <Button className="w-full" onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
             </CardFooter>
         </Card>
       )
@@ -83,82 +167,123 @@ export function OnboardingWizard() {
             {step === 2 && <CardDescription>Paste your return policy or any other information for the AI.</CardDescription>}
             {step === 3 && <CardDescription>Choose the initial features you want to enable.</CardDescription>}
         </CardHeader>
-      <CardContent>
+
         {step === 1 && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="business-name">Business Name</Label>
-              <Input id="business-name" placeholder="e.g., The Awesome Shoe Co." />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
-               {error && <p className="text-sm font-medium text-destructive">{error}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="whatsapp-number">WhatsApp Business Number</Label>
-              <Input id="whatsapp-number" placeholder="+267 71 234 567 or +27 82 123 4567" />
-            </div>
-             <div className="space-y-2">
-                <Label htmlFor="facebook-page">Facebook Page (Optional)</Label>
-                <Input id="facebook-page" placeholder="e.g., facebook.com/AwesomeShoes" />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="instagram-handle">Instagram Handle (Optional)</Label>
-                <Input id="instagram-handle" placeholder="e.g., @AwesomeShoes" />
-            </div>
-          </div>
+            <Form {...step1Form}>
+                <form onSubmit={step1Form.handleSubmit(handleStep1Submit)}>
+                    <CardContent className="space-y-4">
+                        <FormField control={step1Form.control} name="businessName" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Business Name</FormLabel>
+                                <FormControl><Input placeholder="e.g., The Awesome Shoe Co." {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={step1Form.control} name="email" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={step1Form.control} name="password" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl><Input type="password" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={step1Form.control} name="whatsappNumber" render={({ field }) => (
+                             <FormItem>
+                                <FormLabel>WhatsApp Business Number</FormLabel>
+                                <FormControl><Input placeholder="+267 71 234 567 or +27 82 123 4567" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={step1Form.control} name="facebookPage" render={({ field }) => (
+                             <FormItem>
+                                <FormLabel>Facebook Page (Optional)</FormLabel>
+                                <FormControl><Input placeholder="e.g., facebook.com/AwesomeShoes" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={step1Form.control} name="instagramHandle" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Instagram Handle (Optional)</FormLabel>
+                                <FormControl><Input placeholder="e.g., @AwesomeShoes" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </CardContent>
+                    <CardFooter>
+                        <Button type="submit" className="w-full">Create Account & Continue</Button>
+                    </CardFooter>
+                </form>
+            </Form>
         )}
+        
         {step === 2 && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="business-context">Business Policy or FAQ</Label>
-                <Textarea 
-                    id="business-context" 
-                    placeholder="Paste your return policy, store hours, FAQ, or any other text you want the AI to know."
-                    className="min-h-[200px]"
-                />
-            </div>
-          </div>
+            <Form {...step2Form}>
+                <form onSubmit={step2Form.handleSubmit(handleStep2Submit)}>
+                    <CardContent>
+                        <FormField control={step2Form.control} name="businessContext" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Business Policy or FAQ</FormLabel>
+                                <FormControl>
+                                    <Textarea 
+                                        placeholder="Paste your return policy, store hours, FAQ, or any other text you want the AI to know."
+                                        className="min-h-[200px]"
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </CardContent>
+                    <CardFooter>
+                        <Button type="submit" disabled={isLoading} className="w-full">
+                            Save & Continue
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Form>
         )}
+
         {step === 3 && (
-            <div className="space-y-4 rounded-lg border p-4">
-                <h3 className="font-medium mb-4">Configuration Checklist</h3>
-                <div className="flex items-center space-x-3">
-                    <Checkbox id="auto-returns" defaultChecked />
-                    <Label htmlFor="auto-returns" className="flex flex-col">
-                        <span>Enable Automated Returns</span>
-                        <span className="text-xs text-muted-foreground">Allow AI to automatically process eligible returns.</span>
-                    </Label>
+            <>
+            <CardContent>
+                <div className="space-y-4 rounded-lg border p-4">
+                    <h3 className="font-medium mb-4">Configuration Checklist</h3>
+                    <div className="flex items-center space-x-3">
+                        <Checkbox id="auto-returns" defaultChecked />
+                        <Label htmlFor="auto-returns" className="flex flex-col">
+                            <span>Enable Automated Returns</span>
+                            <span className="text-xs text-muted-foreground">Allow AI to automatically process eligible returns.</span>
+                        </Label>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                        <Checkbox id="visual-search" defaultChecked />
+                        <Label htmlFor="visual-search" className="flex flex-col">
+                            <span>Enable Visual Search</span>
+                            <span className="text-xs text-muted-foreground">Let customers search your products by uploading a photo.</span>
+                        </Label>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                        <Checkbox id="policy-ai" defaultChecked />
+                        <Label htmlFor="policy-ai" className="flex flex-col">
+                            <span>Enable Policy/FAQ AI</span>
+                            <span className="text-xs text-muted-foreground">Let customers ask questions about your business.</span>
+                        </Label>
+                    </div>
                 </div>
-                 <div className="flex items-center space-x-3">
-                    <Checkbox id="visual-search" defaultChecked />
-                    <Label htmlFor="visual-search" className="flex flex-col">
-                        <span>Enable Visual Search</span>
-                         <span className="text-xs text-muted-foreground">Let customers search your products by uploading a photo.</span>
-                    </Label>
-                </div>
-                 <div className="flex items-center space-x-3">
-                    <Checkbox id="policy-ai" defaultChecked />
-                     <Label htmlFor="policy-ai" className="flex flex-col">
-                        <span>Enable Policy/FAQ AI</span>
-                         <span className="text-xs text-muted-foreground">Let customers ask questions about your business.</span>
-                    </Label>
-                </div>
-            </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleFinalSubmit} disabled={isLoading} className="w-full">
+                     {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Finishing Up...</> : 'Finish Setup'}
+                </Button>
+            </CardFooter>
+            </>
         )}
-      </CardContent>
-      <CardFooter>
-        {step === 1 && <Button onClick={handleNextStep} className="w-full">Create Account</Button>}
-        {step === 2 && <Button onClick={handleSaveContext} disabled={isLoading} className="w-full">
-            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save & Continue'}
-        </Button>}
-        {step === 3 && <Button onClick={handleNextStep} className="w-full">Finish Setup</Button>}
-      </CardFooter>
     </Card>
   );
 }

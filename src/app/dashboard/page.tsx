@@ -1,3 +1,6 @@
+
+'use client';
+
 import { AppConfig } from '@/lib/app-config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

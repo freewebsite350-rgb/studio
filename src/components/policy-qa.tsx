@@ -1,12 +1,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Sparkles } from 'lucide-react';
 import { getPolicyAnswerStream, PolicyQaInput } from '@/ai/flows/policy-qa-flow';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 type QAFunction = (input: PolicyQaInput) => Promise<ReadableStream<any>>;
 
@@ -21,6 +23,28 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
     const [question, setQuestion] = useState('');
     const [answer, setAnswer] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [businessContext, setBusinessContext] = useState<string | null>(null);
+
+    const user = useUser();
+    const firestore = useFirestore();
+
+    // Fetch the business context for the logged-in user
+    useEffect(() => {
+        if (user && firestore && !qaStreamer.name.includes('getAdmin')) {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const unsubscribe = onSnapshot(userDocRef, (doc) => {
+                if (doc.exists()) {
+                    setBusinessContext(doc.data().businessContext || '');
+                } else {
+                    // This can happen if the user doc isn't created yet
+                    // or if the user is not the business owner.
+                    setBusinessContext('');
+                }
+            });
+            return () => unsubscribe();
+        }
+    }, [user, firestore, qaStreamer]);
+
 
     const handleAsk = async () => {
         if (!question.trim()) return;
@@ -29,7 +53,19 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
         setAnswer('');
 
         try {
-            const stream = await qaStreamer({ customer_question: question });
+            // If it's the admin streamer, it doesn't need a business context.
+            // Otherwise, wait until we have a context from Firestore.
+            if (!qaStreamer.name.includes('getAdmin') && businessContext === null) {
+                setAnswer('Initializing your AI assistant... Please wait a moment and try again.');
+                setIsLoading(false);
+                return;
+            }
+
+            const stream = await qaStreamer({ 
+                customer_question: question,
+                business_context: businessContext, // Will be `null` for admin, which is handled in the flow
+            });
+            
             const reader = stream.getReader();
             const decoder = new TextDecoder();
             let accumulatedAnswer = '';
@@ -49,6 +85,10 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
             setIsLoading(false);
         }
     };
+    
+    // Disable form if it's not the admin bot and the context is not yet loaded.
+    const isReady = qaStreamer.name.includes('getAdmin') || businessContext !== null;
+
 
     return (
         <Card className="w-full shadow-lg border-2 border-transparent focus-within:border-primary/50 transition-colors duration-300">
@@ -61,11 +101,11 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
                     <Input 
                         id="question" 
                         name="question" 
-                        placeholder={placeholder || "e.g., How do I return an electronic item?"}
+                        placeholder={!isReady ? "Loading your AI..." : (placeholder || "e.g., How do I return an electronic item?")}
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleAsk()}
-                        disabled={isLoading}
+                        onKeyDown={(e) => e.key === 'Enter' && !isLoading && isReady && handleAsk()}
+                        disabled={isLoading || !isReady}
                     />
                 </div>
                 {isLoading && !answer && (
@@ -81,7 +121,7 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
                 )}
             </CardContent>
             <CardFooter>
-                <Button onClick={handleAsk} className="w-full" disabled={isLoading || !question.trim()}>
+                <Button onClick={handleAsk} className="w-full" disabled={isLoading || !question.trim() || !isReady}>
                     {isLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
