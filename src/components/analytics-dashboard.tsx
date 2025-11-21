@@ -1,8 +1,12 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { mockReturnData, returnsByReason, returnTrend } from '@/lib/mock-data';
+
+const mockReturnData: any[] = [];
+const returnsByReason: any[] = [];
+const returnTrend: any[] = [];
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -52,7 +56,7 @@ export function AnalyticsDashboard() {
            <CardDescription>Total value of refunds issued.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-4xl font-bold">$1,284</p>
+          <p className="text-4xl font-bold">$0</p>
         </CardContent>
       </Card>
 
@@ -63,25 +67,31 @@ export function AnalyticsDashboard() {
         </CardHeader>
         <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                    <Pie
-                        data={returnsByReason}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="returns"
-                        nameKey="reason"
-                    >
-                        {returnsByReason.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                </PieChart>
+                {returnsByReason.length > 0 ? (
+                    <PieChart>
+                        <Pie
+                            data={returnsByReason}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="returns"
+                            nameKey="reason"
+                        >
+                            {returnsByReason.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                    </PieChart>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                        No return data available.
+                    </div>
+                )}
             </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -93,14 +103,20 @@ export function AnalyticsDashboard() {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={returnTrend}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="week" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="returns" fill="hsl(var(--primary))" />
-            </BarChart>
+            {returnTrend.length > 0 ? (
+                <BarChart data={returnTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="week" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="returns" fill="hsl(var(--primary))" />
+                </BarChart>
+            ) : (
+                 <div className="flex items-center justify-center h-full text-muted-foreground">
+                    No trend data available.
+                </div>
+            )}
           </ResponsiveContainer>
         </CardContent>
       </Card>

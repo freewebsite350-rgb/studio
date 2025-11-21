@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Bot, Camera, Package, UserPlus, BarChart2, LayoutDashboard, Shield, LifeBuoy, Cog, Code } from 'lucide-react';
+import { Bot, Camera, Package, UserPlus, BarChart2, LayoutDashboard, Shield, LifeBuoy, Cog, Code, ShoppingCart } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -52,6 +52,18 @@ export function AppSidebar() {
               <Link href="/analytics">
                 <BarChart2 />
                 <span>Analytics</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/products'}
+              tooltip={{ children: 'Products' }}
+            >
+              <Link href="/products">
+                <ShoppingCart />
+                <span>Products</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
