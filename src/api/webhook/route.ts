@@ -4,20 +4,21 @@ import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Fi
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
-// Helper to initialize Firebase SDK for server-side use, ensuring it's only done once per request context if needed.
+// Helper to get a Firestore instance for server-side use.
+// It initializes a new app for each request to avoid connection state issues in a serverless environment.
 function getDb(): Firestore {
-    if (getApps().length === 0) {
-        const firebaseConfig = {
-            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-        };
-        initializeApp(firebaseConfig);
-    }
-    return getFirestore(getApp());
+    const firebaseConfig = {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    };
+    // Use a unique app name for each initialization to avoid conflicts
+    const appName = `server-app-${Date.now()}-${Math.random()}`;
+    const app = initializeApp(firebaseConfig, appName);
+    return getFirestore(app);
 }
 
 
