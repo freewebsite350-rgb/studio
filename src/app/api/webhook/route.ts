@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     if (mode === 'subscribe' && token === process.env.MESSENGER_VERIFY_TOKEN) {
       // Respond with the challenge token from the request
       console.log('WEBHOOK_VERIFIED');
-      return NextResponse.json(Number(challenge), { status: 200 });
+      return new NextResponse(challenge, { status: 200 });
     } else {
       // Respond with '403 Forbidden' if verify tokens do not match
       console.error('Webhook verification failed: Verify tokens do not match.');
