@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -9,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Bot, Camera, Package, UserPlus, BarChart2, LayoutDashboard } from 'lucide-react';
+import { Bot, Camera, Package, UserPlus, BarChart2, LayoutDashboard, Shield } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -99,6 +100,18 @@ export function AppSidebar() {
               <Link href="/onboarding">
                 <UserPlus />
                 <span>Onboarding</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/admin'}
+              tooltip={{ children: 'Admin' }}
+            >
+              <Link href="/admin">
+                <Shield />
+                <span>Admin</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,9 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Sparkles } from 'lucide-react';
-import { getPolicyAnswerStream } from '@/ai/flows/policy-qa-flow';
+import { getPolicyAnswerStream, PolicyQaInput } from '@/ai/flows/policy-qa-flow';
 
-export function PolicyQa() {
+type QAFunction = (input: PolicyQaInput) => Promise<ReadableStream<any>>;
+
+interface PolicyQaProps {
+    title?: string;
+    description?: string;
+    qaStreamer?: QAFunction;
+}
+
+export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStream }: PolicyQaProps) {
     const [question, setQuestion] = useState('');
     const [answer, setAnswer] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +28,7 @@ export function PolicyQa() {
         setAnswer('');
 
         try {
-            const stream = await getPolicyAnswerStream({ customer_question: question });
+            const stream = await qaStreamer({ customer_question: question });
             const reader = stream.getReader();
             const decoder = new TextDecoder();
             let accumulatedAnswer = '';
@@ -43,15 +52,15 @@ export function PolicyQa() {
     return (
         <Card className="w-full shadow-lg border-2 border-transparent focus-within:border-primary/50 transition-colors duration-300">
             <CardHeader>
-              <CardTitle>Policy Q&A</CardTitle>
-              <CardDescription>Ask a question about our return policy.</CardDescription>
+              <CardTitle>{title || 'Policy Q&A'}</CardTitle>
+              <CardDescription>{description || 'Ask a question about our return policy.'}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
                     <Input 
                         id="question" 
                         name="question" 
-                        placeholder="e.g., What's the return window for electronics?" 
+                        placeholder="e.g., How do I connect to WhatsApp?" 
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleAsk()}
