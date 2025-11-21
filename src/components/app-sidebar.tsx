@@ -15,11 +15,12 @@ import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from './ui/button';
-import { useAuthUser } from '@/firebase';
+import { useAuthUser, useUser } from '@/firebase';
 
 export function AppSidebar() {
   const pathname = usePathname();
   const auth = useAuthUser();
+  const user = useUser();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -29,9 +30,8 @@ export function AppSidebar() {
     }
   }
 
-  // A simple check to see if the logged-in user is the admin.
-  // In a real app, this would be based on a custom claim or a role in the database.
-  const isAdmin = auth?.currentUser?.email === 'samuelhelp80@gmail.com';
+  // The admin link should only show for the specific admin user.
+  const isAdmin = user?.email === 'samuelhelp80@gmail.com';
 
   return (
     <>
