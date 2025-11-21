@@ -4,7 +4,7 @@
 import { AppConfig } from '@/lib/app-config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart2, Bot, Camera, LayoutDashboard, Package, Sparkles, MessageCircle, Link as LinkIcon, LifeBuoy } from 'lucide-react';
+import { BarChart2, Bot, Camera, LayoutDashboard, Package, Sparkles, MessageCircle, Link as LinkIcon, LifeBuoy, Code } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -41,6 +41,12 @@ const tools = [
         description: "Ask us questions about this product.",
         icon: <LifeBuoy className="h-8 w-8 text-primary" />,
         href: "/support-ai"
+    },
+    {
+        title: "Website Integration",
+        description: "Embed the AI assistant on your website.",
+        icon: <Code className="h-8 w-8 text-primary" />,
+        href: "/website-integration"
     }
 ]
 
@@ -231,7 +237,7 @@ export default function DashboardPage() {
       {/* Tools Section */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Your Tools</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tools.map((tool) => (
                  <Card key={tool.href} className="hover:shadow-lg hover:-translate-y-1 transition-all">
                     <CardHeader className="flex-row items-start gap-4">
@@ -254,5 +260,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-
-    
