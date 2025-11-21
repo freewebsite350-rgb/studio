@@ -73,7 +73,7 @@ export async function getAdminPolicyAnswerStream(input: AdminQaInput) {
     const adminContext = await getAdminBusinessContext();
 
     const {stream} = generateStream({
-        model: ai.model('gemini-2.5-flash'),
+        model: ai.model('gemini-1.5-flash'),
         prompt: promptTemplateText,
         input: {
             customer_question: input.customer_question,

@@ -69,7 +69,7 @@ export async function getPolicyAnswer(input: PolicyQaInput): Promise<PolicyQaOut
 export async function getPolicyAnswerStream(input: PolicyQaInput) {
 
   const {stream} = generateStream({
-    model: ai.model('gemini-2.5-flash'),
+    model: ai.model('gemini-1.5-flash'),
     prompt: promptTemplate.prompt,
     input: {
       customer_question: input.customer_question,

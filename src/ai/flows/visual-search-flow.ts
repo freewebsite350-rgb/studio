@@ -82,6 +82,7 @@ const prompt = ai.definePrompt({
   input: {schema: VisualSearchInputSchema.extend({ productCatalogJson: z.string() })},
   output: {schema: VisualSearchOutputSchema},
   prompt: promptTemplate,
+  model: ai.model('gemini-1.5-flash'),
 });
 
 
