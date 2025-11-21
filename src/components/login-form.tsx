@@ -36,8 +36,8 @@ export function LoginForm() {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'samuelhelp80@gmail.com',
-      password: '123456',
+      email: 'test@test.com',
+      password: 'password',
     }
   });
 
@@ -57,39 +57,19 @@ export function LoginForm() {
         await signInWithEmailAndPassword(auth, data.email, data.password);
         router.push('/dashboard');
     } catch (error: any) {
-        // If user is not found, create the user and their Firestore record
-        if (error.code === 'auth/user-not-found') {
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-                const user = userCredential.user;
-
-                const userDocRef = doc(firestore, 'users', user.uid);
-                await setDoc(userDocRef, {
-                    uid: user.uid,
-                    email: data.email,
-                    businessName: 'Admin Account',
-                    businessContext: 'This is the admin account for Retail-Assist 3.0.',
-                    createdAt: serverTimestamp(),
-                });
-                
-                // Now that the user is created, push to dashboard.
-                // Firebase automatically signs in the user after creation.
-                router.push('/dashboard');
-
-            } catch (creationError: any) {
-                 console.error("User creation error:", creationError);
-                 toast({
-                     variant: "destructive",
-                     title: "Signup Failed",
-                     description: "Could not create your account. Please try again.",
-                 });
-            }
+        // If user is not found, show an error. Onboarding is the correct flow for creation.
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+             toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: "Invalid email or password. Please try again or sign up.",
+            });
         } else {
             console.error("Login error:", error);
             toast({
                 variant: "destructive",
                 title: "Login Failed",
-                description: error.message || "Invalid email or password. Please try again.",
+                description: error.message || "An unexpected error occurred.",
             });
         }
     } finally {
