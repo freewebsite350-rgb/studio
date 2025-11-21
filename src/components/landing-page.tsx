@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -125,6 +126,14 @@ export function LandingPage() {
                                     <CheckCircle className="h-5 w-5 text-green-500" />
                                     <span>Direct influence on new features</span>
                                 </li>
+                                 <li className="flex items-center gap-3">
+                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                    <span>Connect to WhatsApp, Facebook & Instagram</span>
+                                </li>
+                                <li className="flex items-center gap-3">
+                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                    <span>Embeddable Website Chat Widget</span>
+                                </li>
                                 <li className="flex items-center gap-3">
                                     <CheckCircle className="h-5 w-5 text-green-500" />
                                     <span>All current & future features included</span>
@@ -147,3 +156,5 @@ export function LandingPage() {
         </div>
     )
 }
+
+    
