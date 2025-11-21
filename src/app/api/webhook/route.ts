@@ -1,6 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+// This is a secret token that you and Facebook will share.
+// It's used to verify that the requests are genuinely coming from Facebook.
+const VERIFY_TOKEN = "retail-assist-token";
+
 /**
  * Handles the webhook verification request from Facebook.
  * Facebook sends a GET request to this endpoint to verify the webhook.
@@ -14,19 +18,21 @@ export async function GET(req: NextRequest) {
   // Check if a token and mode is in the query string of the request
   if (mode && token) {
     // Check the mode and token sent are correct
-    if (mode === 'subscribe' && token === process.env.MESSENGER_VERIFY_TOKEN) {
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       // Respond with the challenge token from the request
       console.log('WEBHOOK_VERIFIED');
-      return new NextResponse(challenge, { status: 200 });
+      // IMPORTANT: Facebook expects a plain-text response with the challenge value.
+      return new NextResponse(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
     } else {
       // Respond with '403 Forbidden' if verify tokens do not match
       console.error('Webhook verification failed: Verify tokens do not match.');
-      return new NextResponse(null, { status: 403 });
+      return new NextResponse('Forbidden', { status: 403 });
     }
   }
   // Respond with '400 Bad Request' if mode or token is not present
-  return new NextResponse(null, { status: 400 });
+  return new NextResponse('Bad Request', { status: 400 });
 }
+
 
 /**
  * Handles incoming messages from Facebook Messenger.
