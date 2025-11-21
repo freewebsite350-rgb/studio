@@ -1,5 +1,5 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // This is a secret token that you and Facebook will share.
 // It's used to verify that the requests are genuinely coming from Facebook.
@@ -9,29 +9,27 @@ const VERIFY_TOKEN = "retail-assist-token";
  * Handles the webhook verification request from Facebook.
  * Facebook sends a GET request to this endpoint to verify the webhook.
  */
-export async function GET(req: NextRequest) {
-  const searchParams = req.nextUrl.searchParams;
-  const mode = searchParams.get('hub.mode');
-  const token = searchParams.get('hub.verify_token');
-  const challenge = searchParams.get('hub.challenge');
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const mode = url.searchParams.get('hub.mode');
+  const token = url.searchParams.get('hub.verify_token');
+  const challenge = url.searchParams.get('hub.challenge');
 
   // Check if a token and mode is in the query string of the request
   if (mode && token) {
     // Check the mode and token sent are correct
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-      // Respond with the challenge token from the request
+      // Respond with the challenge token from the request as plain text
       console.log('WEBHOOK_VERIFIED');
-      // IMPORTANT: Facebook expects a plain-text response with the challenge value.
-      // Use the primitive Response object to ensure a plain text response.
       return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
     } else {
       // Respond with '403 Forbidden' if verify tokens do not match
       console.error('Webhook verification failed: Verify tokens do not match.');
-      return new NextResponse('Forbidden', { status: 403 });
+      return new Response('Forbidden', { status: 403 });
     }
   }
   // Respond with '400 Bad Request' if mode or token is not present
-  return new NextResponse('Bad Request', { status: 400 });
+  return new Response('Bad Request', { status: 400 });
 }
 
 
@@ -39,7 +37,7 @@ export async function GET(req: NextRequest) {
  * Handles incoming messages from Facebook Messenger.
  * Facebook sends a POST request to this endpoint with message payloads.
  */
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
     const body = await req.json();
 
     // Checks this is an event from a page subscription
