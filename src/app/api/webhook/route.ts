@@ -1,5 +1,5 @@
 
-import { NextResponse } from 'next/server';
+import { type NextRequest } from 'next/server';
 
 // This is a secret token that you and Facebook will share.
 // It's used to verify that the requests are genuinely coming from Facebook.
@@ -57,9 +57,9 @@ export async function POST(req: Request) {
         });
 
         // Returns a '200 OK' response to all requests
-        return new NextResponse('EVENT_RECEIVED', { status: 200 });
+        return new Response('EVENT_RECEIVED', { status: 200 });
     } else {
         // Returns a '404 Not Found' if event is not from a page subscription
-        return new NextResponse(null, { status: 404 });
+        return new Response('Not Found', { status: 404 });
     }
 }
