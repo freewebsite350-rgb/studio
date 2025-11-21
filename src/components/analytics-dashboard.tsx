@@ -1,120 +1,173 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, onSnapshot, query, DocumentData, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-
-const mockReturnData: any[] = [];
-const returnsByReason: any[] = [];
-const returnTrend: any[] = [];
+import { Loader2 } from 'lucide-react';
+import { subWeeks, format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
+type Interaction = {
+    id: string;
+    type: string;
+    createdAt: Timestamp;
+    details: Record<string, any>;
+};
+
 export function AnalyticsDashboard() {
-    const totalReturns = mockReturnData.length;
+    const user = useUser();
+    const firestore = useFirestore();
+    const [interactions, setInteractions] = useState<Interaction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (user && firestore) {
+            setIsLoading(true);
+            const interactionsQuery = query(collection(firestore, 'users', user.uid, 'interactions'));
+            const unsubscribe = onSnapshot(interactionsQuery, (snapshot) => {
+                const interactionsData = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                } as Interaction));
+                setInteractions(interactionsData);
+                setIsLoading(false);
+            }, (error) => {
+                console.error("Error fetching interactions: ", error);
+                setIsLoading(false);
+            });
+
+            return () => unsubscribe();
+        } else if (!user) {
+            setIsLoading(false);
+        }
+    }, [user, firestore]);
+
+    const totalInteractions = interactions.length;
     
-    const mostReturnedItem = mockReturnData.reduce((acc, curr) => {
-        acc[curr.product] = (acc[curr.product] || 0) + 1;
+    const interactionsByType = interactions.reduce((acc, curr) => {
+        acc[curr.type] = (acc[curr.type] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
-    const topItem = Object.entries(mostReturnedItem).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
-    const topReturnReason = returnsByReason.sort((a,b) => b.returns - a.returns)[0]?.reason || 'N/A';
+    const interactionsByTypeData = Object.entries(interactionsByType).map(([type, count]) => ({
+        name: type.replace('_', ' '),
+        value: count,
+    }));
+
+    const interactionTrend = Array.from({ length: 4 }).map((_, i) => {
+        const weekDate = subWeeks(new Date(), 3 - i);
+        const start = startOfWeek(weekDate);
+        const end = endOfWeek(weekDate);
+        
+        const count = interactions.filter(interaction => {
+            const interactionDate = interaction.createdAt.toDate();
+            return isWithinInterval(interactionDate, { start, end });
+        }).length;
+        
+        return {
+            week: `Week of ${format(start, 'MMM d')}`,
+            interactions: count
+        };
+    });
+    
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-[50vh]">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card>
         <CardHeader>
-          <CardTitle>Total Returns</CardTitle>
-          <CardDescription>Total number of returns this month.</CardDescription>
+          <CardTitle>Total AI Interactions</CardTitle>
+          <CardDescription>Total number of AI interactions.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-4xl font-bold">{totalReturns}</p>
+          <p className="text-4xl font-bold">{totalInteractions}</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Top Return Reason</CardTitle>
-          <CardDescription>Most frequent reason for returns.</CardDescription>
+          <CardTitle>Most Frequent Interaction</CardTitle>
+          <CardDescription>Most common type of AI usage.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold">{topReturnReason}</p>
-        </CardContent>
-      </Card>
-       <Card>
-        <CardHeader>
-          <CardTitle>Most Returned Item</CardTitle>
-          <CardDescription>Product with the highest return rate.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">{topItem}</p>
+          <p className="text-3xl font-bold capitalize">
+            {interactionsByTypeData.sort((a,b) => b.value - a.value)[0]?.name || 'N/A'}
+          </p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Refunds Processed</CardTitle>
-           <CardDescription>Total value of refunds issued.</CardDescription>
+          <CardTitle>Time Saved (Est.)</CardTitle>
+           <CardDescription>Estimated time saved by automation.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-4xl font-bold">$0</p>
+          <p className="text-4xl font-bold">~{Math.round(totalInteractions * 0.5)} <span className="text-lg font-normal">mins</span></p>
         </CardContent>
       </Card>
 
-      <Card className="col-span-1 lg:col-span-2">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-1">
         <CardHeader>
-          <CardTitle>Returns by Reason</CardTitle>
-          <CardDescription>A breakdown of return reasons.</CardDescription>
+          <CardTitle>Interactions by Type</CardTitle>
+          <CardDescription>A breakdown of AI interaction types.</CardDescription>
         </CardHeader>
         <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-                {returnsByReason.length > 0 ? (
+                {interactionsByTypeData.length > 0 ? (
                     <PieChart>
                         <Pie
-                            data={returnsByReason}
+                            data={interactionsByTypeData}
                             cx="50%"
                             cy="50%"
                             labelLine={false}
                             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={100}
+                            outerRadius={80}
                             fill="#8884d8"
-                            dataKey="returns"
-                            nameKey="reason"
+                            dataKey="value"
+                            nameKey="name"
                         >
-                            {returnsByReason.map((entry, index) => (
+                            {interactionsByTypeData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
                         <Tooltip />
-                        <Legend />
                     </PieChart>
                 ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
-                        No return data available.
+                        No interaction data available.
                     </div>
                 )}
             </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      <Card className="col-span-1 lg:col-span-2">
+      <Card className="col-span-1 md:col-span-2">
         <CardHeader>
-          <CardTitle>Return Trend</CardTitle>
-          <CardDescription>Return counts over the past weeks.</CardDescription>
+          <CardTitle>Interaction Trend</CardTitle>
+          <CardDescription>Interaction counts over the past 4 weeks.</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            {returnTrend.length > 0 ? (
-                <BarChart data={returnTrend}>
+            {interactionTrend.some(d => d.interactions > 0) ? (
+                <BarChart data={interactionTrend}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="week" />
-                  <YAxis />
+                  <XAxis dataKey="week" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                   <Tooltip />
-                  <Legend />
-                  <Bar dataKey="returns" fill="hsl(var(--primary))" />
+                  <Bar dataKey="interactions" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
             ) : (
                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    No trend data available.
+                    No trend data available yet.
                 </div>
             )}
           </ResponsiveContainer>
