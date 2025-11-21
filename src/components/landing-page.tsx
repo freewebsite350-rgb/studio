@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { CheckCircle, Bot, Package, Camera, BarChart2, Zap, FileText, Code } from 'lucide-react';
+import { CheckCircle, Bot, Package, Camera, BarChart2, Zap, FileText, Code, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AppConfig } from '@/lib/app-config';
@@ -11,9 +11,9 @@ import { AppConfig } from '@/lib/app-config';
 
 const features = [
     {
-      icon: <Bot className="h-8 w-8 text-primary" />,
-      title: "24/7 AI-Powered Support",
-      description: "Stop replying to the same questions. Our AI handles delivery queries, support questions, and policy info instantly.",
+      icon: <MessageCircle className="h-8 w-8 text-primary" />,
+      title: "Meet Customers on WhatsApp",
+      description: "Stop replying to the same questions. Our AI handles delivery queries and support questions instantly on WhatsApp.",
     },
     {
       icon: <FileText className="h-8 w-8 text-primary" />,
@@ -23,7 +23,7 @@ const features = [
     {
       icon: <Camera className="h-8 w-8 text-primary" />,
       title: "Visual Product Search",
-      description: "For retailers, allow customers to search for products by uploading a photo, just like the big brands do.",
+      description: "Allow customers to search for products by uploading a photo, making shopping easier for them.",
     },
     {
       icon: <BarChart2 className="h-8 w-8 text-primary" />,
