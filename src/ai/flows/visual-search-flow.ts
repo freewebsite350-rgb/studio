@@ -9,7 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {getFirestore, collection, getDocs} from 'firebase/firestore';
+import {getFirestore, collection, getDocs, addDoc, serverTimestamp} from 'firebase/firestore';
 import {initializeApp, getApp, App} from 'firebase/app';
 import {firebaseConfig} from '@/firebase/config';
 
@@ -108,6 +108,19 @@ const visualSearchFlow = ai.defineFlow(
         ...input,
         productCatalogJson: catalogJson
     });
+
+    if (output && output.products.length > 0 && input.userId) {
+        const interactionsRef = collection(db, 'users', input.userId, 'interactions');
+        await addDoc(interactionsRef, {
+            type: 'VISUAL_SEARCH',
+            details: {
+                resultCount: output.products.length,
+                topMatch: output.products[0].productName,
+            },
+            createdAt: serverTimestamp(),
+        });
+    }
+
 
     // Handle cases where the model might not find any products
     if (!output || !output.products) {
