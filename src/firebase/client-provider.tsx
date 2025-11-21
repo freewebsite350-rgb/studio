@@ -1,24 +1,49 @@
 
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { FirebaseProvider } from "./provider";
+import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
+import { Auth, getAuth } from "firebase/auth";
+import { Firestore, getFirestore } from "firebase/firestore";
+
+let app: FirebaseApp;
+let auth: Auth;
+let firestore: Firestore;
 
 export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
-    const [isFirebaseInitialized, setFirebaseInitialized] = useState(false);
+    const [firebaseInstances, setFirebaseInstances] = useState<{
+        app: FirebaseApp;
+        auth: Auth;
+        firestore: Firestore;
+    } | null>(null);
 
     useEffect(() => {
-        // The dynamic import ensures that Firebase is only loaded on the client side.
-        import('./index').then((firebaseModule) => {
-            firebaseModule.initializeFirebase();
-            setFirebaseInitialized(true);
-        });
+        const firebaseConfig = {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+
+        if (!getApps().length) {
+            app = initializeApp(firebaseConfig);
+        } else {
+            app = getApp();
+        }
+        
+        auth = getAuth(app);
+        firestore = getFirestore(app);
+
+        setFirebaseInstances({ app, auth, firestore });
     }, []);
 
-    if (!isFirebaseInitialized) {
+    if (!firebaseInstances) {
         // You can return a loading spinner or null here
         return null;
     }
 
-    return <FirebaseProvider>{children}</FirebaseProvider>
+    return <FirebaseProvider instances={firebaseInstances}>{children}</FirebaseProvider>
 }
