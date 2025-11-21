@@ -54,9 +54,9 @@ export function OnboardingWizard() {
   const step1Form = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
     defaultValues: {
-        businessName: '',
-        email: '',
-        password: '',
+        businessName: 'My Business',
+        email: 'samuelhelp80@gmail.com',
+        password: '123456',
         whatsappNumber: '',
         facebookPage: '',
         instagramHandle: '',
