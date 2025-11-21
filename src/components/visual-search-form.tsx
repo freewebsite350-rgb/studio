@@ -7,6 +7,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Loader2, Search, Upload, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import { findSimilarProducts, VisualSearchOutput } from '@/ai/flows/visual-search-flow';
+import { useUser } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 type SearchResult = VisualSearchOutput['products'][0];
 
@@ -15,6 +17,8 @@ export function VisualSearchForm() {
     const [isSearching, setIsSearching] = useState(false);
     const [results, setResults] = useState<SearchResult[] | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const user = useUser();
+    const { toast } = useToast();
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -30,14 +34,30 @@ export function VisualSearchForm() {
 
     const handleSearch = async () => {
         if (!preview) return;
+        if (!user) {
+            toast({
+                variant: 'destructive',
+                title: 'Authentication Error',
+                description: 'You must be logged in to perform a visual search.',
+            });
+            return;
+        }
+
         setIsSearching(true);
         
         try {
-            const response = await findSimilarProducts({ photoDataUri: preview });
+            const response = await findSimilarProducts({ 
+                photoDataUri: preview,
+                userId: user.uid 
+            });
             setResults(response.products);
         } catch (error) {
             console.error("Error finding similar products:", error);
-            // Optionally, show a toast or error message to the user
+            toast({
+                variant: 'destructive',
+                title: 'Search Failed',
+                description: 'Could not find similar products. Please try again.',
+            });
         } finally {
             setIsSearching(false);
         }
@@ -54,19 +74,33 @@ export function VisualSearchForm() {
             fileInputRef.current.value = '';
         }
     }
+    
+    if (!user) {
+        return (
+             <Card className="w-full shadow-lg">
+                <CardHeader>
+                    <CardTitle>Visual Search</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                    <p>Please log in to use visual search.</p>
+                </CardContent>
+            </Card>
+        )
+    }
 
     if (results) {
         return (
              <Card className="w-full shadow-lg">
                 <CardHeader>
                     <CardTitle>Search Results</CardTitle>
-                    <CardDescription>We found these products based on your image.</CardDescription>
+                    <CardDescription>We found these products in your catalog based on the uploaded image.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {results.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {results.map((item) => (
-                                <Card key={item.productUrl} className="overflow-hidden">
+                            {results.map((item, index) => (
+                                <Card key={`${item.productUrl}-${index}`} className="overflow-hidden">
                                     <CardContent className="p-0">
                                         <div className="relative aspect-square w-full">
                                             <Image src={item.imageUrl} alt={item.productName} fill className="object-cover" />
@@ -90,7 +124,7 @@ export function VisualSearchForm() {
                         </div>
                     ) : (
                          <div className="text-center py-8 text-muted-foreground">
-                            <p>No similar products found.</p>
+                            <p>No similar products found in your catalog.</p>
                             <p className="text-xs">Try a different image for better results.</p>
                         </div>
                     )}
@@ -108,7 +142,7 @@ export function VisualSearchForm() {
         <Card className="w-full shadow-lg border-2 border-transparent focus-within:border-primary/50 transition-colors duration-300">
             <CardHeader>
               <CardTitle>Visual Search</CardTitle>
-              <CardDescription>Upload a product photo to find matching items.</CardDescription>
+              <CardDescription>Upload a product photo to find matching items in your catalog.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">

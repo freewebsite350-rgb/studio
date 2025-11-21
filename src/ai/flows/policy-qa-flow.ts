@@ -14,7 +14,7 @@ import {z, generateStream} from 'genkit';
 const PolicyQaInputSchema = z.object({
   customer_question: z.string().describe("The customer's question about the business."),
   // In a real app, this context would be fetched from a database based on the logged-in user.
-  business_context: z.string().describe("The business's policy, FAQ, or other relevant information.").optional(),
+  business_context: z.string().describe("The business's policy, FAQ, or other relevant information."),
 });
 export type PolicyQaInput = z.infer<typeof PolicyQaInputSchema>;
 
@@ -23,22 +23,6 @@ const PolicyQaOutputSchema = z.object({
 });
 export type PolicyQaOutput = z.infer<typeof PolicyQaOutputSchema>;
 
-// This is now a fallback for when no context is provided during the call.
-const DEFAULT_BUSINESS_CONTEXT = `
-Return Policy:
-
-Our return window is 30 days for most items. Items must be unworn, in their original packaging, and with all tags attached. 
-A full refund will be issued to the original payment method.
-
-Electronics:
-Electronics, such as headphones and cameras, have a 14-day return window. They must be in their original, unopened packaging. If the packaging is opened, a 15% restocking fee will apply. A valid receipt is required for all electronics returns.
-
-Sale Items:
-Items purchased on sale are final and cannot be returned or exchanged.
-
-Exceptions:
-Customized products are non-returnable. For hygiene reasons, undergarments and swimwear cannot be returned.
-`;
 
 const promptTemplate = {
     name: 'policyQaPrompt',
@@ -62,14 +46,13 @@ export async function getPolicyAnswer(input: PolicyQaInput): Promise<PolicyQaOut
 }
 
 export async function getPolicyAnswerStream(input: PolicyQaInput) {
-  const context = input.business_context || DEFAULT_BUSINESS_CONTEXT;
 
   const {stream} = generateStream({
     model: ai.model('gemini-2.5-flash'),
     prompt: promptTemplate.prompt,
     input: {
       customer_question: input.customer_question,
-      business_context: context,
+      business_context: input.business_context,
     },
     output: {
       schema: PolicyQaOutputSchema,
@@ -103,10 +86,9 @@ const policyQaFlow = ai.defineFlow(
     outputSchema: PolicyQaOutputSchema,
   },
   async (input) => {
-    const context = input.business_context || DEFAULT_BUSINESS_CONTEXT;
     const {output} = await prompt({
         customer_question: input.customer_question,
-        business_context: context,
+        business_context: input.business_context,
     });
     return output!;
   }
