@@ -1,24 +1,11 @@
 'use client';
 
 import { LandingPage } from '@/components/landing-page';
-import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/app-sidebar';
 
 export default function Home() {
   return (
-    <SidebarProvider>
-      <div vaul-drawer-wrapper="">
-        <div className="relative flex min-h-screen flex-col bg-background">
-          <Sidebar>
-            <AppSidebar />
-          </Sidebar>
-          <SidebarInset>
-            <main className="flex flex-1 flex-col">
-              <LandingPage />
-            </main>
-          </SidebarInset>
-        </div>
-      </div>
-    </SidebarProvider>
+    <main className="flex flex-1 flex-col">
+      <LandingPage />
+    </main>
   );
 }
