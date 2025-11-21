@@ -1,10 +1,11 @@
-'use client';
-
-import { LandingPage } from '@/components/landing-page';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 
-export default function Home() {
+export default function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <SidebarProvider>
       <div vaul-drawer-wrapper="">
@@ -13,9 +14,7 @@ export default function Home() {
             <AppSidebar />
           </Sidebar>
           <SidebarInset>
-            <main className="flex flex-1 flex-col">
-              <LandingPage />
-            </main>
+            {children}
           </SidebarInset>
         </div>
       </div>

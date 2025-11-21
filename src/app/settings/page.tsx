@@ -1,4 +1,3 @@
-
 import { BusinessSettings } from '@/components/business-settings';
 import { AppConfig } from '@/lib/app-config';
 import { Cog } from 'lucide-react';

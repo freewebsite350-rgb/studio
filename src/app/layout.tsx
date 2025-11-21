@@ -1,8 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/app-sidebar';
 
 export const metadata: Metadata = {
   title: 'Retail-Assist 3.0',
@@ -20,19 +18,8 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
       </head>
       <body className="font-body antialiased h-full">
-        <SidebarProvider>
-          <div vaul-drawer-wrapper="">
-            <div className="relative flex min-h-screen flex-col bg-background">
-              <Sidebar>
-                <AppSidebar />
-              </Sidebar>
-              <SidebarInset>
-                {children}
-              </SidebarInset>
-            </div>
-          </div>
+          {children}
           <Toaster />
-        </SidebarProvider>
       </body>
     </html>
   );
