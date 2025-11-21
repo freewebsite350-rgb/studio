@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
 import type { State } from '@/app/actions';
 import { initiateReturn } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -14,9 +13,7 @@ import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 
 const initialState: State = { message: '', status: undefined, errors: undefined };
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
-
+function SubmitButton({ pending }: { pending: boolean }) {
     return (
         <Button type="submit" className="w-full" disabled={pending}>
             {pending ? (
@@ -32,9 +29,8 @@ function SubmitButton() {
 }
 
 export function ReturnForm() {
-    const [state, formAction] = useActionState(initiateReturn, initialState);
+    const [state, formAction, isPending] = useActionState(initiateReturn, initialState);
     const formRef = useRef<HTMLFormElement>(null);
-    const { pending } = useFormStatus();
     
     useEffect(() => {
         if (state?.status === 'SUCCESS') {
@@ -69,7 +65,7 @@ export function ReturnForm() {
                         )}
                     </div>
                     
-                    {!pending && state?.message && (state?.status === 'SUCCESS' || (state?.status === 'ERROR' && !state.errors)) && (
+                    {!isPending && state?.message && (state?.status === 'SUCCESS' || (state?.status === 'ERROR' && !state.errors)) && (
                         <Alert variant={state.status === 'SUCCESS' ? 'default' : 'destructive'} className={`mt-4 animate-in fade-in-50 ${state.status === 'SUCCESS' ? 'bg-primary/10 border-primary/20 text-primary-foreground' : ''}`}>
                             {state.status === 'SUCCESS' ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <XCircle className="h-4 w-4" />}
                             <AlertTitle>{state.status === 'SUCCESS' ? 'Success!' : 'Error'}</AlertTitle>
@@ -80,7 +76,7 @@ export function ReturnForm() {
                     )}
                 </CardContent>
                 <CardFooter>
-                    <SubmitButton />
+                    <SubmitButton pending={isPending} />
                 </CardFooter>
             </form>
         </Card>
