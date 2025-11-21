@@ -11,18 +11,10 @@
 import {ai} from '@/ai/genkit';
 import {z, generateStream} from 'genkit';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { initializeApp, getApp, App } from 'firebase/app';
-import { firebaseConfig } from '@/firebase/config';
+import { getFirebaseInstances } from '@/firebase';
 
 // Helper to initialize Firebase Admin SDK.
-let app: App;
-try {
-  app = getApp();
-} catch (e) {
-  app = initializeApp(firebaseConfig);
-}
-
-const db = getFirestore(app);
+const { firestore: db } = getFirebaseInstances();
 
 
 const PolicyQaInputSchema = z.object({

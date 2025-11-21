@@ -11,6 +11,7 @@ let app: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
 
+// This function should be called once on the client side.
 function initializeFirebase() {
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,22 +21,31 @@ function initializeFirebase() {
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   };
-  
-  // This is a sanity check to ensure the config is not empty.
-  if (!firebaseConfig.apiKey) {
-    console.error("Firebase config is missing. Check your .env file.");
-    // We will still try to initialize, but it will likely fail.
-  }
 
-  try {
-    app = getApp();
-  } catch (e) {
+  // This check is crucial for client-side rendering and Next.js HMR.
+  if (!getApps().length) {
     app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
   }
+  
   auth = getAuth(app);
   firestore = getFirestore(app);
+  
   return { app, auth, firestore };
 }
+
+// A helper to avoid re-initializing on the server in flows.
+// Re-export getApps from firebase/app
+import { getApps } from 'firebase/app';
+export function getFirebaseInstances() {
+    // Ensure Firebase is initialized
+    if (!getApps().length) {
+        return initializeFirebase();
+    }
+    return { app: getApp(), auth: getAuth(), firestore: getFirestore() };
+}
+
 
 export {
   initializeFirebase,

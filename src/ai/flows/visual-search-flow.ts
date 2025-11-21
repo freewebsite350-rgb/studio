@@ -10,18 +10,11 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import {getFirestore, collection, getDocs, addDoc, serverTimestamp} from 'firebase/firestore';
-import {initializeApp, getApp, App} from 'firebase/app';
-import {firebaseConfig} from '@/firebase/config';
+import { getFirebaseInstances } from '@/firebase';
 
 // Helper to initialize Firebase Admin SDK.
-let app: App;
-try {
-  app = getApp();
-} catch (e) {
-  app = initializeApp(firebaseConfig);
-}
+const { firestore: db } = getFirebaseInstances();
 
-const db = getFirestore(app);
 
 const ProductSchema = z.object({
   productName: z.string().describe('The name of the product.'),

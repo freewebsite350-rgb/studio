@@ -1,20 +1,13 @@
 import { NextRequest } from 'next/server';
 import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where } from 'firebase/firestore';
-import { initializeApp, getApp, App } from 'firebase/app';
-import { firebaseConfig } from '@/firebase/config';
+import { getFirebaseInstances } from '@/firebase';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
 
 const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
 
 // Initialize Firebase
-let app: App;
-try {
-  app = getApp();
-} catch (e) {
-  app = initializeApp(firebaseConfig);
-}
-const db = getFirestore(app);
+const { firestore: db } = getFirebaseInstances();
 
 /**
  * Handles the webhook verification request from Meta.
