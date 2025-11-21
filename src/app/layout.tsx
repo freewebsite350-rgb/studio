@@ -1,10 +1,12 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
 
 export const metadata: Metadata = {
-  title: 'ReturnFlow',
-  description: 'Initiate your return request quickly and easily.',
+  title: 'Retail-Assist 3.0',
+  description: 'An AI-powered assistant for your retail business.',
 };
 
 export default function RootLayout({
@@ -13,15 +15,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full dark">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
       </head>
       <body className="font-body antialiased h-full">
-        {children}
-        <Toaster />
+        <SidebarProvider>
+          <Sidebar>
+            <AppSidebar />
+          </Sidebar>
+          <SidebarInset>
+            {children}
+            <Toaster />
+          </SidebarInset>
+        </SidebarProvider>
       </body>
     </html>
   );
