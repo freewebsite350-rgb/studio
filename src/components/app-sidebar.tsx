@@ -15,12 +15,13 @@ import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from './ui/button';
+import { useUser } from '@/hooks/useUser';
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { isAuthenticated, role } = useUser();
 
-  // The admin link is always visible in this public version
-  const isAdmin = true; 
+  const isAdmin = isAuthenticated && role === 'admin';
 
   return (
     <>
