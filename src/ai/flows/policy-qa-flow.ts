@@ -11,30 +11,11 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getFirestore, addDoc, collection, serverTimestamp, Firestore } from 'firebase/firestore';
-import { initializeApp, deleteApp } from 'firebase/app';
-
-// Helper to get a Firestore instance for server-side use.
-// It initializes a new, uniquely named app for each request to avoid connection state issues in a serverless environment.
-function getDb(): Firestore {
-    const firebaseConfig = {
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    };
-    // Use a unique app name for each initialization to avoid conflicts
-    const appName = `server-app-policy-qa-${Date.now()}-${Math.random()}`;
-    const app = initializeApp(firebaseConfig, appName);
-    return getFirestore(app);
-}
+import { createClient } from '@/lib/supabase/server';
 
 const PolicyQaInputSchema = z.object({
   customer_question: z.string().describe("The customer's question about the business."),
-  business_context: z.string().describe("The business's policy, FAQ, or other relevant information."),
-   userId: z.string().describe("The UID of the user whose context is being used."),
+  userId: z.string().describe("The UID of the user whose context is being used."),
 });
 export type PolicyQaInput = z.infer<typeof PolicyQaInputSchema>;
 
@@ -46,17 +27,17 @@ export type PolicyQaOutput = z.infer<typeof PolicyQaOutputSchema>;
 
 const promptTemplate = {
     name: 'policyQaPrompt',
-    input: {schema: PolicyQaInputSchema},
+    input: {schema: z.object({
+        customer_question: z.string(),
+        system_prompt: z.string(),
+    })},
     output: {schema: PolicyQaOutputSchema},
     prompt: {
-        template: `You are a helpful AI assistant for a business. Your goal is to answer customer questions based ONLY on the following context provided. Do not use any external knowledge. If the answer is not in the context, politely state that you don't have that information.
+        template: `You are an AI assistant for this business:
+{{{system_prompt}}}
 
-Business Context:
-"""
-{{{business_context}}}
-"""
-
-Customer Question: {{{customer_question}}}
+User message:
+{{{customer_question}}}
 `,
     }
 };
@@ -68,14 +49,20 @@ export async function getPolicyAnswer(input: PolicyQaInput): Promise<PolicyQaOut
 }
 
 export async function getPolicyAnswerStream(input: PolicyQaInput) {
+  const supabase = createClient();
+  const { data: settings } = await supabase
+    .from("ai_settings")
+    .select("system_prompt")
+    .eq("user_id", input.userId)
+    .single();
+
   const {stream} = ai.generateStream({
     model: 'gemini-1.5-flash',
     prompt: {
       template: promptTemplate.prompt.template,
       input: {
         customer_question: input.customer_question,
-        business_context: input.business_context,
-        userId: input.userId,
+        system_prompt: settings?.system_prompt || 'You are a helpful assistant.',
       },
     },
     output: {
@@ -115,26 +102,26 @@ const policyQaFlow = ai.defineFlow(
     outputSchema: PolicyQaOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
-    const firestore = getDb();
+    const supabase = createClient();
+    const { data: settings } = await supabase
+      .from("ai_settings")
+      .select("system_prompt")
+      .eq("user_id", input.userId)
+      .single();
 
-    try {
-        if (output && input.userId) {
-            const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
-            await addDoc(interactionsRef, {
-                type: 'POLICY_QA',
-                details: {
-                    question: input.customer_question,
-                    answer: output.answer,
-                },
-                createdAt: serverTimestamp(),
-            });
-        }
-    } catch (e) {
-        console.error("Error writing interaction to Firestore:", e);
-    } finally {
-        // Clean up the temporary app instance after use
-        await deleteApp(firestore.app);
+    const {output} = await prompt({
+        customer_question: input.customer_question,
+        system_prompt: settings?.system_prompt || 'You are a helpful assistant.',
+    });
+
+    if (output) {
+        await supabase.from('interactions').insert([
+            {
+                user_id: input.userId,
+                message: input.customer_question,
+                response: output.answer,
+            },
+        ]);
     }
 
     return output!;

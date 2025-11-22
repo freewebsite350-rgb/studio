@@ -143,6 +143,18 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/ai-settings'}
+              tooltip={{ children: 'AI Settings' }}
+            >
+              <Link href="/ai-settings">
+                <Bot />
+                <span>AI Settings</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           {isAdmin && (
             <SidebarMenuItem>
                 <SidebarMenuButton

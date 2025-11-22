@@ -1,24 +1,7 @@
+
 import { NextRequest } from 'next/server';
-import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Firestore } from 'firebase/firestore';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-
-// Helper to initialize Firebase SDK for server-side use.
-function getDb(): Firestore {
-    if (getApps().length === 0) {
-        const firebaseConfig = {
-            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-        };
-        initializeApp(firebaseConfig);
-    }
-    return getFirestore(getApp());
-}
-
+import { createClient } from '@/lib/supabase/server';
 
 const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
@@ -95,45 +78,33 @@ async function handleMessage(sender_psid: string, page_id: string, received_mess
         return;
     }
 
-    let userId = '';
-    let businessContext = '';
-    const firestore = getDb();
+    const supabase = createClient();
 
     try {
-        console.log(`[FIREBASE] Searching for user with Facebook Page ID: ${page_id}`);
-        const usersRef = collection(firestore, 'users');
-        const q = query(usersRef, where("facebookPageId", "==", page_id), limit(1));
-        const querySnapshot = await getDocs(q);
+        console.log(`[SUPABASE] Searching for user with Facebook Page ID: ${page_id}`);
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('id')
+            .eq('facebook_page_id', page_id)
+            .single();
 
-        if (querySnapshot.empty) {
-             console.error(`[FIREBASE] CRITICAL: No user found for pageId ${page_id}. Cannot get business context.`);
+        if (error || !user) {
+             console.error(`[SUPABASE] CRITICAL: No user found for pageId ${page_id}. Cannot get business context.`);
              await callSendAPI(sender_psid, page_id, { text: "I'm sorry, this business has not configured their AI assistant correctly." });
              return;
         }
 
-        const userDoc = querySnapshot.docs[0];
-        userId = userDoc.id;
-        businessContext = userDoc.data()?.businessContext;
-        console.log(`[FIREBASE] Found user ${userId}. Using their context to respond.`);
-
-        if (!businessContext) {
-            console.error(`[FIREBASE] User ${userId} does not have businessContext set.`);
-            await callSendAPI(sender_psid, page_id, { text: "I'm sorry, the AI assistant for this business has not been configured yet." });
-            return;
-        }
-        
-        console.log(`[AI] Generating response for user ${userId} with question: "${received_message.text}"`);
+        console.log(`[AI] Generating response for user ${user.id} with question: "${received_message.text}"`);
         const aiResponse = await getPolicyAnswer({
             customer_question: received_message.text,
-            business_context: businessContext,
-            userId: userId,
+            userId: user.id,
         });
 
         await callSendAPI(sender_psid, page_id, { text: aiResponse.answer });
 
     } catch (error: any)
     {
-        console.error('[AI/FIREBASE ERROR] Error handling message:', error);
+        console.error('[AI/SUPABASE ERROR] Error handling message:', error);
         await callSendAPI(sender_psid, page_id, { text: "Sorry, I ran into a problem trying to respond. Please try again later." });
     }
 }

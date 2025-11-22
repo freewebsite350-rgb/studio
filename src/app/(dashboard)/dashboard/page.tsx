@@ -13,7 +13,7 @@ function ClientDashboardPage() {
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold">Your Dashboard</h1>
           <Button variant="outline" asChild>
-            <Link href="/settings">
+            <Link href="/ai-settings">
               <Cog className="mr-2 h-4 w-4" />
               Business Settings
             </Link>

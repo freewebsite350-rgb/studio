@@ -5,9 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuthUser, useFirestore } from '@/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -16,31 +14,50 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [facebookPageId, setFacebookPageId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const auth = useAuthUser();
-  const firestore = useFirestore();
+  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
-    } catch (error: any) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) {
       setError(error.message);
+    } else {
+      router.push('/dashboard');
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(firestore, 'businesses', userCredential.user.uid), {
-        name: businessName,
-      });
-      router.push('/dashboard');
-    } catch (error: any) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          role: 'client',
+          business_name: businessName,
+        },
+      },
+    });
+    if (error) {
       setError(error.message);
+    } else if (data.user) {
+        const { error: insertError } = await supabase.from('users').insert([
+            {
+                id: data.user.id,
+                facebook_page_id: facebookPageId,
+            },
+        ]);
+        if (insertError) {
+            setError(insertError.message);
+        } else {
+            router.push('/dashboard');
+        }
     }
   };
 
@@ -118,6 +135,16 @@ export default function LoginPage() {
                       required
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="facebook-page-id">Facebook Page ID</Label>
+                    <Input
+                      id="facebook-page-id"
+                      placeholder="e.g., 1234567890"
+                      required
+                      value={facebookPageId}
+                      onChange={(e) => setFacebookPageId(e.target.value)}
                     />
                   </div>
                   <div className="grid gap-2">
