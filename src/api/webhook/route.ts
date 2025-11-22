@@ -2,10 +2,10 @@
 import { NextRequest } from 'next/server';
 import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Firestore, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
-import { initializeApp, deleteApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 
 // Helper to get a Firestore instance for server-side use.
-// It initializes a new, uniquely named app for each request to avoid connection state issues in a serverless environment.
+// It initializes a single app instance and reuses it, which is the correct pattern for Next.js server-side code.
 function getDb(): Firestore {
     const firebaseConfig = {
         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,10 +15,10 @@ function getDb(): Firestore {
         messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
         appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     };
-    // Use a unique app name for each initialization to avoid conflicts
-    const appName = `server-app-webhook-${Date.now()}-${Math.random()}`;
-    const app = initializeApp(firebaseConfig, appName);
-    return getFirestore(app);
+    if (!getApps().length) {
+        initializeApp(firebaseConfig);
+    }
+    return getFirestore(getApp());
 }
 
 
@@ -108,7 +108,7 @@ async function handleMessage(sender_psid: string, page_id: string, received_mess
         if (querySnapshot.empty) {
              console.error(`[FIREBASE] CRITICAL: No user found for pageId ${page_id}. Cannot get business context.`);
              await callSendAPI(sender_psid, page_id, { text: "I'm sorry, this business has not configured their AI assistant correctly." });
-             return; // finally block will still run
+             return;
         }
 
         const userDoc = querySnapshot.docs[0];
@@ -119,7 +119,7 @@ async function handleMessage(sender_psid: string, page_id: string, received_mess
         if (!businessContext) {
             console.error(`[FIREBASE] User ${userId} does not have businessContext set.`);
             await callSendAPI(sender_psid, page_id, { text: "I'm sorry, the AI assistant for this business has not been configured yet." });
-            return; // finally block will still run
+            return;
         }
         
         console.log(`[AI] Generating response for user ${userId} with question: "${received_message.text}"`);
@@ -135,9 +135,6 @@ async function handleMessage(sender_psid: string, page_id: string, received_mess
     {
         console.error('[AI/FIREBASE ERROR] Error handling message:', error);
         await callSendAPI(sender_psid, page_id, { text: "Sorry, I ran into a problem trying to respond. Please try again later." });
-    } finally {
-        // Clean up the temporary app instance after use
-        await deleteApp(firestore.app);
     }
 }
 
