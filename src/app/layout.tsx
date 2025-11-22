@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Retail-Assist 3.0',
@@ -19,9 +18,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
       </head>
       <body className="font-body antialiased h-full">
-          <FirebaseClientProvider>
-            {children}
-          </FirebaseClientProvider>
+          {children}
           <Toaster />
       </body>
     </html>

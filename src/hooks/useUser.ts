@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
-import { useAuthUser } from '@/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { createClient } from '@/lib/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 type UserRole = 'admin' | 'client' | null;
 
@@ -12,22 +12,24 @@ interface AuthState {
 }
 
 export function useUser() {
-  const auth = useAuthUser();
+  const supabase = createClient();
   const [user, setUser] = useState<AuthState>({ isAuthenticated: false, role: null, user: null });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const token = await user.getIdTokenResult();
-        const role = token.claims.role as UserRole;
-        setUser({ isAuthenticated: true, role, user });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setUser({
+          isAuthenticated: true,
+          role: session.user.user_metadata.role || null,
+          user: session.user,
+        });
       } else {
         setUser({ isAuthenticated: false, role: null, user: null });
       }
     });
 
-    return () => unsubscribe();
-  }, [auth]);
+    return () => subscription.unsubscribe();
+  }, [supabase]);
 
   return user;
 }

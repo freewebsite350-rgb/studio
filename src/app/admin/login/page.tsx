@@ -5,32 +5,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AppConfig } from '@/lib/app-config';
+import { createClient } from '@/lib/supabase/client';
 import { Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useAuthUser } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const auth = useAuthUser();
+  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const token = await userCredential.user.getIdTokenResult();
-      if (token.claims.role !== 'admin') {
-        setError('You are not authorized to access this page.');
-        return;
-      }
-      router.push('/admin');
-    } catch (error: any) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) {
       setError(error.message);
+    } else if (data.user?.user_metadata.role !== 'admin') {
+      setError('You are not authorized to access this page.');
+    } else {
+      router.push('/admin');
     }
   };
 
