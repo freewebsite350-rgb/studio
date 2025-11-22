@@ -5,8 +5,9 @@ import { AppConfig } from '@/lib/app-config';
 import { Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { withAuth } from '@/hooks/withAuth';
 
-export default function AdminPage() {
+function AdminPage() {
   
   return (
     <main className="flex min-h-screen flex-col items-center p-4 sm:p-6 lg:p-8">
@@ -27,3 +28,5 @@ export default function AdminPage() {
     </main>
   );
 }
+
+export default withAuth(AdminPage, 'admin');
