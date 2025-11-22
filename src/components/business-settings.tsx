@@ -7,14 +7,13 @@ import { Loader2, HelpCircle } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore } from '@/firebase/provider';
+import { useFirestore } from '@/firebase/provider';
 import { doc, onSnapshot, setDoc, serverTimestamp, DocumentData } from 'firebase/firestore';
 import { Input } from './ui/input';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import Link from 'next/link';
 
 const settingsSchema = z.object({
     businessContext: z.string().min(20, 'Please provide some context for your business.'),
@@ -26,9 +25,11 @@ const settingsSchema = z.object({
 
 type SettingsFormData = z.infer<typeof settingsSchema>;
 
+// A mock user ID for the public version
+const MOCK_USER_ID = "public_user_id";
+
 export function BusinessSettings() {
   const { toast } = useToast();
-  const user = useUser();
   const firestore = useFirestore();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,9 +46,9 @@ export function BusinessSettings() {
   });
 
   useEffect(() => {
-    if (user && firestore) {
+    if (firestore) {
       setIsLoading(true);
-      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocRef = doc(firestore, 'users', MOCK_USER_ID);
       const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data() as DocumentData;
@@ -63,13 +64,13 @@ export function BusinessSettings() {
       });
       return () => unsubscribe();
     }
-  }, [user, firestore, form]);
+  }, [firestore, form]);
 
   const handleSaveChanges = async (data: SettingsFormData) => {
-    if (!user || !firestore) return;
+    if (!firestore) return;
     setIsSaving(true);
 
-    const userDocRef = doc(firestore, 'users', user.uid);
+    const userDocRef = doc(firestore, 'users', MOCK_USER_ID);
     try {
         await setDoc(userDocRef, { 
             ...data,

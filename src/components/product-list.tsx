@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { collection, onSnapshot, addDoc, serverTimestamp, query, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -28,6 +28,8 @@ const productSchema = z.object({
 
 type ProductFormData = z.infer<typeof productSchema>;
 type Product = ProductFormData & { id: string };
+
+const MOCK_USER_ID = "public_user_id";
 
 function AddProductDialog({ userId }: { userId: string }) {
     const [open, setOpen] = useState(false);
@@ -142,13 +144,12 @@ function AddProductDialog({ userId }: { userId: string }) {
 export function ProductList() {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const user = useUser();
     const firestore = useFirestore();
 
     useEffect(() => {
-        if (user && firestore) {
+        if (firestore) {
             setIsLoading(true);
-            const productsQuery = query(collection(firestore, 'users', user.uid, 'products'));
+            const productsQuery = query(collection(firestore, 'users', MOCK_USER_ID, 'products'));
             const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
                 const productsData = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
                     id: doc.id,
@@ -162,10 +163,8 @@ export function ProductList() {
             });
 
             return () => unsubscribe();
-        } else if (!user) {
-            setIsLoading(false);
         }
-    }, [user, firestore]);
+    }, [firestore]);
 
     if (isLoading) {
         return (
@@ -182,7 +181,7 @@ export function ProductList() {
                     <CardTitle>Your Product Catalog</CardTitle>
                     <CardDescription>Manage your business's inventory here.</CardDescription>
                 </div>
-                {user && <AddProductDialog userId={user.uid} />}
+                <AddProductDialog userId={MOCK_USER_ID} />
             </CardHeader>
             <CardContent>
                 <Table>

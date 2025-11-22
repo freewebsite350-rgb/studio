@@ -10,28 +10,17 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Bot, Camera, Package, BarChart2, LayoutDashboard, LifeBuoy, Cog, Code, ShoppingCart, Shield, LogOut } from 'lucide-react';
+import { Bot, Camera, Package, BarChart2, LayoutDashboard, LifeBuoy, Cog, Code, ShoppingCart, Shield } from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Button } from './ui/button';
-import { useAuthUser, useUser } from '@/firebase';
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const auth = useAuthUser();
-  const user = useUser();
-  const router = useRouter();
 
-  const handleSignOut = async () => {
-    if (auth) {
-        await auth.signOut();
-        router.push('/');
-    }
-  }
-
-  // The admin link should only show for the specific admin user.
-  const isAdmin = user?.email === 'samuelhelp80@gmail.com';
+  // The admin link is always visible in this public version
+  const isAdmin = true; 
 
   return (
     <>
@@ -170,9 +159,8 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-         <Button variant="ghost" onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
+         <Button variant="outline" asChild>
+            <Link href="/">Back to Home</Link>
          </Button>
       </SidebarFooter>
     </>

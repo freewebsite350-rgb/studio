@@ -7,17 +7,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Loader2, Search, Upload, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import { findSimilarProducts, VisualSearchOutput } from '@/ai/flows/visual-search-flow';
-import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 type SearchResult = VisualSearchOutput['products'][0];
+
+const MOCK_USER_ID = "public_user_id";
 
 export function VisualSearchForm() {
     const [preview, setPreview] = useState<string | null>(null);
     const [isSearching, setIsSearching] = useState(false);
     const [results, setResults] = useState<SearchResult[] | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const user = useUser();
     const { toast } = useToast();
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,21 +34,13 @@ export function VisualSearchForm() {
 
     const handleSearch = async () => {
         if (!preview) return;
-        if (!user) {
-            toast({
-                variant: 'destructive',
-                title: 'Authentication Error',
-                description: 'You must be logged in to perform a visual search.',
-            });
-            return;
-        }
-
+        
         setIsSearching(true);
         
         try {
             const response = await findSimilarProducts({ 
                 photoDataUri: preview,
-                userId: user.uid 
+                userId: MOCK_USER_ID
             });
             setResults(response.products);
         } catch (error) {
@@ -75,20 +67,6 @@ export function VisualSearchForm() {
         }
     }
     
-    if (!user) {
-        return (
-             <Card className="w-full shadow-lg">
-                <CardHeader>
-                    <CardTitle>Visual Search</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground">
-                    <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                    <p>Please log in to use visual search.</p>
-                </CardContent>
-            </Card>
-        )
-    }
-
     if (results) {
         return (
              <Card className="w-full shadow-lg">

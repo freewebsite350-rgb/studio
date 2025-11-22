@@ -45,10 +45,7 @@ export function LandingPage() {
                 </p>
                 <div className="flex justify-center gap-4">
                     <Button size="lg" asChild>
-                        <Link href="/onboarding">Sign Up</Link>
-                    </Button>
-                    <Button size="lg" variant="outline" asChild>
-                        <Link href="/login">Login</Link>
+                        <Link href="/dashboard">View Demo Dashboard</Link>
                     </Button>
                 </div>
             </section>
@@ -100,7 +97,7 @@ export function LandingPage() {
                 <div className="container mx-auto max-w-4xl text-center">
                     <h2 className="text-3xl font-bold tracking-tight mb-4">Limited Launch Partner Offer</h2>
                     <p className="text-lg text-muted-foreground mb-12">Become a Launch Partner and get exclusive benefits for helping us shape the future of local small business tools.</p>
-                    <Card className="shadow-2xl border-2 border-primary scale-105">
+                    <Card className="shadow-2xl border-2 border-primary">
                         <CardHeader className="text-center">
                             <div className="flex justify-center mb-4">
                                 <Zap className="h-10 w-10 text-primary" />
@@ -140,7 +137,7 @@ export function LandingPage() {
                                 </li>
                             </ul>
                             <Button className="w-full" size="lg" asChild>
-                                <Link href="/onboarding">Become a Launch Partner</Link>
+                                <Link href="/#">Become a Launch Partner</Link>
                             </Button>
                         </CardContent>
                     </Card>

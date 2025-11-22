@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Sparkles } from 'lucide-react';
 import { getPolicyAnswerStream } from '@/ai/flows/policy-qa-flow';
-import { useUser, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 // A generic input type that works for both policy and admin QA
@@ -26,22 +26,24 @@ interface PolicyQaProps {
     placeholder?: string;
 }
 
+// A mock user ID for the public version
+const MOCK_USER_ID = "public_user_id";
+
 export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStream, placeholder }: PolicyQaProps) {
     const [question, setQuestion] = useState('');
     const [answer, setAnswer] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [businessContext, setBusinessContext] = useState<string | null>(null);
 
-    const user = useUser();
     const firestore = useFirestore();
 
     // Check if the provided streamer function is the admin one.
     const isAdminStreamer = qaStreamer.name.includes('getAdmin');
 
-    // Fetch the business context for the logged-in user if it's not the admin streamer
+    // Fetch the business context for the mock user if it's not the admin streamer
     useEffect(() => {
-        if (user && firestore && !isAdminStreamer) {
-            const userDocRef = doc(firestore, 'users', user.uid);
+        if (firestore && !isAdminStreamer) {
+            const userDocRef = doc(firestore, 'users', MOCK_USER_ID);
             const unsubscribe = onSnapshot(userDocRef, (doc) => {
                 if (doc.exists()) {
                     setBusinessContext(doc.data().businessContext || '');
@@ -51,7 +53,7 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
             });
             return () => unsubscribe();
         }
-    }, [user, firestore, isAdminStreamer]);
+    }, [firestore, isAdminStreamer]);
 
 
     const handleAsk = async () => {
@@ -74,13 +76,8 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
 
             // Only add business_context and userId if they are relevant
             if (!isAdminStreamer) {
-                if (!user) {
-                     setAnswer('You must be logged in to ask the AI.');
-                     setIsLoading(false);
-                     return;
-                }
                 input.business_context = businessContext!;
-                input.userId = user.uid;
+                input.userId = MOCK_USER_ID;
             }
 
             const stream = await qaStreamer(input);
