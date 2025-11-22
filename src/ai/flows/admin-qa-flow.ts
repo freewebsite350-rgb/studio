@@ -37,17 +37,18 @@ function getDb(): Firestore {
 
 async function getAdminBusinessContext(): Promise<string> {
     const firestore = getDb();
-    const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
-    const docSnap = await getDoc(configDocRef);
-    if (docSnap.exists() && docSnap.data()?.adminBusinessContext) {
+    try {
+        const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
+        const docSnap = await getDoc(configDocRef);
+        if (docSnap.exists() && docSnap.data()?.adminBusinessContext) {
+            return docSnap.data()?.adminBusinessContext;
+        }
+        // Return a default fallback if the document doesn't exist
+        return "Retail-Assist 3.0 is an AI assistant for small businesses. Please configure its context in the admin settings.";
+    } finally {
         // Clean up the temporary app instance after use
-        deleteApp(docSnap.firestore.app);
-        return docSnap.data()?.adminBusinessContext;
+        await deleteApp(firestore.app);
     }
-    // Clean up the temporary app instance after use
-    deleteApp(firestore.app);
-    // Return a default fallback if the document doesn't exist
-    return "Retail-Assist 3.0 is an AI assistant for small businesses. Please configure its context in the admin settings.";
 }
 
 const promptTemplateText = `You are the AI assistant for "Retail-Assist 3.0", a SaaS product. Your job is to answer questions for the OWNER of Retail-Assist 3.0, helping them support their clients (the small business owners who sign up).
@@ -96,12 +97,17 @@ export async function getAdminPolicyAnswerStream(input: AdminQaInput) {
     transform(chunk, controller) {
       const text = decoder.decode(chunk, {stream: true});
       try {
-        const jsonChunk = JSON.parse(text);
-        if (jsonChunk.answer) {
-          controller.enqueue(jsonChunk.answer);
+        // This is a simplified way to handle streaming JSON. It might not parse every chunk perfectly but works for many cases.
+        // It accumulates text until it can parse a complete JSON object from it.
+        const potentialJson = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+        if(potentialJson) {
+            const jsonChunk = JSON.parse(potentialJson);
+            if (jsonChunk.answer) {
+              controller.enqueue(jsonChunk.answer);
+            }
         }
       } catch (e) {
-        // Incomplete JSON
+        // Incomplete JSON, just ignore and wait for more data.
       }
     },
   });

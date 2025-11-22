@@ -128,8 +128,8 @@ const visualSearchFlow = ai.defineFlow(
     
     if (output && output.products.length > 0 && input.userId) {
         const firestore = getDb();
-        const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
         try {
+            const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
             await addDoc(interactionsRef, {
                 type: 'VISUAL_SEARCH',
                 details: {

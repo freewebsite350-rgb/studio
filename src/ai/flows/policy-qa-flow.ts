@@ -90,9 +90,14 @@ export async function getPolicyAnswerStream(input: PolicyQaInput) {
       // Assuming chunk is a Uint8Array. If it's a string, you don't need TextDecoder.
       const text = decoder.decode(chunk, {stream: true});
       try {
-        const jsonChunk = JSON.parse(text);
-        if (jsonChunk.answer) {
-          controller.enqueue(jsonChunk.answer);
+        // This is a simplified way to handle streaming JSON. It might not parse every chunk perfectly but works for many cases.
+        // It accumulates text until it can parse a complete JSON object from it.
+        const potentialJson = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+        if(potentialJson) {
+            const jsonChunk = JSON.parse(potentialJson);
+            if (jsonChunk.answer) {
+              controller.enqueue(jsonChunk.answer);
+            }
         }
       } catch (e) {
         // Incomplete JSON, just ignore and wait for more data.
@@ -113,9 +118,9 @@ const policyQaFlow = ai.defineFlow(
     const {output} = await prompt(input);
     const firestore = getDb();
 
-    if (output && input.userId) {
-        const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
-        try {
+    try {
+        if (output && input.userId) {
+            const interactionsRef = collection(firestore, 'users', input.userId, 'interactions');
             await addDoc(interactionsRef, {
                 type: 'POLICY_QA',
                 details: {
@@ -124,14 +129,11 @@ const policyQaFlow = ai.defineFlow(
                 },
                 createdAt: serverTimestamp(),
             });
-        } catch (e) {
-            console.error("Error writing interaction to Firestore:", e);
-        } finally {
-            // Clean up the temporary app instance after use
-            await deleteApp(firestore.app);
         }
-    } else if (firestore) {
-         // Clean up if no interaction was logged
+    } catch (e) {
+        console.error("Error writing interaction to Firestore:", e);
+    } finally {
+        // Clean up the temporary app instance after use
         await deleteApp(firestore.app);
     }
 
