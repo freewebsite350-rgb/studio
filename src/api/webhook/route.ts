@@ -2,7 +2,7 @@
 import { NextRequest } from 'next/server';
 import { getFirestore, doc, getDoc, collection, query, limit, getDocs, where, Firestore, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getPolicyAnswer } from '@/ai/flows/policy-qa-flow';
-import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from 'firebase/app';
+import { initializeApp, deleteApp } from 'firebase/app';
 
 // Helper to get a Firestore instance for server-side use.
 // It initializes a new, uniquely named app for each request to avoid connection state issues in a serverless environment.

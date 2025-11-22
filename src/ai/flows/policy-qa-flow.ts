@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getFirestore, addDoc, collection, serverTimestamp, Firestore } from 'firebase/firestore';
-import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
+import { initializeApp, deleteApp } from 'firebase/app';
 
 // Helper to get a Firestore instance for server-side use.
 // It initializes a new, uniquely named app for each request to avoid connection state issues in a serverless environment.

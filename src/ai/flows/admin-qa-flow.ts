@@ -11,7 +11,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { PolicyQaOutput } from './policy-qa-flow';
 import { getFirestore, doc, getDoc, Firestore } from 'firebase/firestore';
-import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
+import { initializeApp, getApp, deleteApp } from 'firebase/app';
 
 
 const ADMIN_CONFIG_DOC_ID = 'app_configuration';
@@ -80,11 +80,11 @@ export async function getAdminPolicyAnswerStream(input: AdminQaInput) {
   const {stream} = ai.generateStream({
     model: 'gemini-1.5-flash',
     prompt: {
-      template: promptTemplateText,
-      input: {
-        customer_question: input.customer_question,
-        business_context: adminContext,
-      },
+        template: promptTemplateText,
+        input: {
+            customer_question: input.customer_question,
+            business_context: adminContext,
+        }
     },
     output: {
       schema: z.object({answer: z.string()}),
