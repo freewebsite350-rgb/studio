@@ -7,8 +7,7 @@ import { Loader2, HelpCircle } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase/provider';
-import { doc, onSnapshot, setDoc, serverTimestamp, DocumentData } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { Input } from './ui/input';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -26,13 +25,12 @@ const settingsSchema = z.object({
 type SettingsFormData = z.infer<typeof settingsSchema>;
 
 // A mock user ID for the public version
-const MOCK_USER_ID = "public_user_id";
-
 export function BusinessSettings() {
   const { toast } = useToast();
-  const firestore = useFirestore();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+  const supabase = createClient();
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -46,50 +44,76 @@ export function BusinessSettings() {
   });
 
   useEffect(() => {
-    if (firestore) {
-      setIsLoading(true);
-      const userDocRef = doc(firestore, 'users', MOCK_USER_ID);
-      const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data() as DocumentData;
+    const fetchUser = async () => {
+      const { data: { session }, } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      } else {
+        // Handle case where there is no user
+        setIsLoading(false);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
+      const fetchSettings = async () => {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (error) {
+          console.error('Error fetching settings:', error);
+        } else if (data) {
           form.reset({
-              businessContext: data.businessContext || '',
-              whatsappNumber: data.whatsappNumber || '',
-              facebookPage: data.facebookPage || '',
-              facebookPageId: data.facebookPageId || '',
-              instagramHandle: data.instagramHandle || '',
+            businessContext: data.business_context || '',
+            whatsappNumber: data.whatsapp_number || '',
+            facebookPage: data.facebook_page_url || '',
+            facebookPageId: data.facebook_page_id || '',
+            instagramHandle: data.instagram_handle || '',
           });
         }
         setIsLoading(false);
-      });
-      return () => unsubscribe();
+      };
+      fetchSettings();
     }
-  }, [firestore, form]);
+  }, [userId, form]);
 
   const handleSaveChanges = async (data: SettingsFormData) => {
-    if (!firestore) return;
+    if (!userId) return;
     setIsSaving(true);
 
-    const userDocRef = doc(firestore, 'users', MOCK_USER_ID);
     try {
-        await setDoc(userDocRef, { 
-            ...data,
-            updatedAt: serverTimestamp() 
-        }, { merge: true });
+      const { error } = await supabase
+        .from('users')
+        .update({
+          business_context: data.businessContext,
+          whatsapp_number: data.whatsappNumber,
+          facebook_page_url: data.facebookPage,
+          facebook_page_id: data.facebookPageId,
+          instagram_handle: data.instagramHandle,
+        })
+        .eq('id', userId);
 
-        toast({
-            title: 'Settings Saved!',
-            description: 'Your AI assistant has been updated with the new information.',
-        });
-    } catch(e) {
-        console.error(e);
-        toast({
-            variant: "destructive",
-            title: 'Uh oh! Something went wrong.',
-            description: 'Could not save your settings. Please try again.',
-        });
+      if (error) throw error;
+
+      toast({
+        title: 'Settings Saved!',
+        description: 'Your AI assistant has been updated with the new information.',
+      });
+    } catch (e) {
+      console.error(e);
+      toast({
+        variant: "destructive",
+        title: 'Uh oh! Something went wrong.',
+        description: 'Could not save your settings. Please try again.',
+      });
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
