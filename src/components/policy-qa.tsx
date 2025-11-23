@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Sparkles } from 'lucide-react';
 import { getPolicyAnswerStream } from '@/ai/flows/policy-qa-flow';
-import { useFirestore } from '@/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 
 // A generic input type that works for both policy and admin QA
 type QaInput = {
@@ -34,26 +33,42 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
     const [answer, setAnswer] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [businessContext, setBusinessContext] = useState<string | null>(null);
-
-    const firestore = useFirestore();
+    const supabase = createClient();
+    const [userId, setUserId] = useState<string | null>(null);
 
     // Check if the provided streamer function is the admin one.
     const isAdminStreamer = qaStreamer.name.includes('getAdmin');
 
-    // Fetch the business context for the mock user if it's not the admin streamer
     useEffect(() => {
-        if (firestore && !isAdminStreamer) {
-            const userDocRef = doc(firestore, 'users', MOCK_USER_ID);
-            const unsubscribe = onSnapshot(userDocRef, (doc) => {
-                if (doc.exists()) {
-                    setBusinessContext(doc.data().businessContext || '');
-                } else {
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setUserId(session.user.id);
+            }
+        };
+        fetchUser();
+    }, [supabase]);
+
+    // Fetch the business context for the user if it's not the admin streamer
+    useEffect(() => {
+        if (userId && !isAdminStreamer) {
+            const fetchBusinessContext = async () => {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('business_context')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    console.error('Error fetching business context:', error);
                     setBusinessContext('');
+                } else if (data) {
+                    setBusinessContext(data.business_context || '');
                 }
-            });
-            return () => unsubscribe();
+            };
+            fetchBusinessContext();
         }
-    }, [firestore, isAdminStreamer]);
+    }, [userId, supabase, isAdminStreamer]);
 
 
     const handleAsk = async () => {
@@ -77,7 +92,7 @@ export function PolicyQa({ title, description, qaStreamer = getPolicyAnswerStrea
             // Only add business_context and userId if they are relevant
             if (!isAdminStreamer) {
                 input.business_context = businessContext!;
-                input.userId = MOCK_USER_ID;
+                input.userId = userId!;
             }
 
             const stream = await qaStreamer(input);

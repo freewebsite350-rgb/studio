@@ -7,8 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Loader2 } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
-import { doc, onSnapshot, setDoc, serverTimestamp, DocumentData } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,12 +19,11 @@ const settingsSchema = z.object({
 
 type SettingsFormData = z.infer<typeof settingsSchema>;
 
-const ADMIN_CONFIG_DOC_ID = 'app_configuration';
-const ADMIN_CONTEXT_COLLECTION = 'admin';
+const ADMIN_CONFIG_ID = 1; // Assuming a single row for admin config
 
 export function AdminSettings() {
   const { toast } = useToast();
-  const firestore = useFirestore();
+  const supabase = createClient();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,55 +35,54 @@ export function AdminSettings() {
   });
 
   useEffect(() => {
-    if (firestore) {
+    const fetchAdminContext = async () => {
       setIsLoading(true);
-      const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
-      const unsubscribe = onSnapshot(configDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data() as DocumentData;
-          form.reset({
-              adminBusinessContext: data.adminBusinessContext || '',
-          });
-        }
-        setIsLoading(false);
-      });
-      return () => unsubscribe();
-    }
-  }, [firestore, form]);
+      const { data, error } = await supabase
+        .from('admin')
+        .select('business_context')
+        .eq('id', ADMIN_CONFIG_ID)
+        .single();
+
+      if (error) {
+        console.error('Error fetching admin context:', error);
+      } else if (data) {
+        form.reset({
+          adminBusinessContext: data.business_context || '',
+        });
+      }
+      setIsLoading(false);
+    };
+
+    fetchAdminContext();
+  }, [supabase, form]);
 
   const handleSaveChanges = async (data: SettingsFormData) => {
-    if (!firestore) return;
-    
-    // UI is no longer blocked here
-    setIsSaving(true); 
+    setIsSaving(true);
 
-    const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
-    
-    // Don't await the setDoc call
-    setDoc(configDocRef, { 
-        ...data,
-        updatedAt: serverTimestamp() 
-    }, { merge: true })
-    .catch((e) => {
-        console.error(e);
-        toast({
-            variant: "destructive",
-            title: 'Uh oh! Something went wrong.',
-            description: 'Could not save your settings in the background. Please try again.',
-        });
-    });
+    try {
+      const { error } = await supabase
+        .from('admin')
+        .update({
+          business_context: data.adminBusinessContext,
+        })
+        .eq('id', ADMIN_CONFIG_ID);
 
-    // Give optimistic success feedback immediately
-    toast({
+      if (error) throw error;
+
+      toast({
         title: 'Settings Saved!',
         description: 'The admin support AI has been updated with the new information.',
-    });
-    
-    // It's good practice to briefly show the saving state in UI, even if non-blocking
-    setTimeout(() => {
-        setIsSaving(false);
-        form.reset(data); // Mark the form as no longer dirty
-    }, 500); 
+      });
+    } catch (e) {
+      console.error(e);
+      toast({
+        variant: "destructive",
+        title: 'Uh oh! Something went wrong.',
+        description: 'Could not save your settings. Please try again.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {

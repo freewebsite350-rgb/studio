@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, onSnapshot, query, DocumentData, Timestamp } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Loader2 } from 'lucide-react';
@@ -14,37 +13,47 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 type Interaction = {
     id: string;
     type: string;
-    createdAt: Timestamp;
+    created_at: string; // Supabase timestamp is a string
     details: Record<string, any>;
 };
 
 export function AnalyticsDashboard() {
-    const user = useUser();
-    const firestore = useFirestore();
+    const supabase = createClient();
     const [interactions, setInteractions] = useState<Interaction[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        if (user && firestore) {
-            setIsLoading(true);
-            const interactionsQuery = query(collection(firestore, 'users', user.uid, 'interactions'));
-            const unsubscribe = onSnapshot(interactionsQuery, (snapshot) => {
-                const interactionsData = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                } as Interaction));
-                setInteractions(interactionsData);
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setUserId(session.user.id);
+            } else {
                 setIsLoading(false);
-            }, (error) => {
-                console.error("Error fetching interactions: ", error);
-                setIsLoading(false);
-            });
+            }
+        };
+        fetchUser();
+    }, [supabase]);
 
-            return () => unsubscribe();
-        } else if (!user) {
-            setIsLoading(false);
+    useEffect(() => {
+        if (userId) {
+            const fetchInteractions = async () => {
+                setIsLoading(true);
+                const { data, error } = await supabase
+                    .from('interactions')
+                    .select('*')
+                    .eq('user_id', userId);
+
+                if (error) {
+                    console.error('Error fetching interactions:', error);
+                } else if (data) {
+                    setInteractions(data as Interaction[]);
+                }
+                setIsLoading(false);
+            };
+            fetchInteractions();
         }
-    }, [user, firestore]);
+    }, [userId, supabase]);
 
     const totalInteractions = interactions.length;
     
@@ -64,7 +73,7 @@ export function AnalyticsDashboard() {
         const end = endOfWeek(weekDate);
         
         const count = interactions.filter(interaction => {
-            const interactionDate = interaction.createdAt.toDate();
+            const interactionDate = new Date(interaction.created_at);
             return isWithinInterval(interactionDate, { start, end });
         }).length;
         

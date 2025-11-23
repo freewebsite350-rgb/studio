@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFirestore } from '@/firebase';
-import { collection, onSnapshot, addDoc, serverTimestamp, query, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,12 +28,10 @@ const productSchema = z.object({
 type ProductFormData = z.infer<typeof productSchema>;
 type Product = ProductFormData & { id: string };
 
-const MOCK_USER_ID = "public_user_id";
-
-function AddProductDialog({ userId }: { userId: string }) {
+function AddProductDialog({ userId, onProductAdded }: { userId: string | null, onProductAdded: () => void }) {
     const [open, setOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const firestore = useFirestore();
+    const supabase = createClient();
     const { toast } = useToast();
 
     const form = useForm<ProductFormData>({
@@ -49,26 +46,33 @@ function AddProductDialog({ userId }: { userId: string }) {
     });
 
     const onSubmit = async (data: ProductFormData) => {
-        if (!firestore) return;
+        if (!userId) return;
         setIsSaving(true);
         try {
-            const productsCollectionRef = collection(firestore, 'users', userId, 'products');
-            await addDoc(productsCollectionRef, {
-                ...data,
-                createdAt: serverTimestamp(),
+            const { error } = await supabase.from('products').insert({
+                user_id: userId,
+                name: data.productName,
+                price: data.price,
+                currency: data.currency,
+                image_url: data.imageUrl,
+                product_url: data.productUrl,
             });
+
+            if (error) throw error;
+
             toast({
                 title: 'Product Added!',
                 description: `${data.productName} has been added to your catalog.`,
             });
             form.reset();
             setOpen(false);
-        } catch (error) {
+            onProductAdded();
+        } catch (error: any) {
             console.error('Error adding product:', error);
             toast({
                 variant: 'destructive',
                 title: 'Uh oh! Something went wrong.',
-                description: 'Could not add the product. Please try again.',
+                description: error.message || 'Could not add the product. Please try again.',
             });
         } finally {
             setIsSaving(false);
@@ -144,27 +148,48 @@ function AddProductDialog({ userId }: { userId: string }) {
 export function ProductList() {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const firestore = useFirestore();
+    const supabase = createClient();
+    const [userId, setUserId] = useState<string | null>(null);
+
+    const fetchProducts = async () => {
+        if (!userId) return;
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error('Error fetching products:', error);
+        } else if (data) {
+            const formattedProducts = data.map((p: any) => ({
+                id: p.id,
+                productName: p.name,
+                price: p.price,
+                currency: p.currency,
+                imageUrl: p.image_url,
+                productUrl: p.product_url,
+            }));
+            setProducts(formattedProducts);
+        }
+        setIsLoading(false);
+    };
 
     useEffect(() => {
-        if (firestore) {
-            setIsLoading(true);
-            const productsQuery = query(collection(firestore, 'users', MOCK_USER_ID, 'products'));
-            const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
-                const productsData = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                } as Product));
-                setProducts(productsData);
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setUserId(session.user.id);
+            } else {
                 setIsLoading(false);
-            }, (error) => {
-                console.error("Error fetching products: ", error);
-                setIsLoading(false);
-            });
+            }
+        };
+        fetchUser();
+    }, [supabase]);
 
-            return () => unsubscribe();
-        }
-    }, [firestore]);
+    useEffect(() => {
+        fetchProducts();
+    }, [userId, supabase]);
 
     if (isLoading) {
         return (
@@ -181,7 +206,7 @@ export function ProductList() {
                     <CardTitle>Your Product Catalog</CardTitle>
                     <CardDescription>Manage your business's inventory here.</CardDescription>
                 </div>
-                <AddProductDialog userId={MOCK_USER_ID} />
+                <AddProductDialog userId={userId} onProductAdded={fetchProducts} />
             </CardHeader>
             <CardContent>
                 <Table>

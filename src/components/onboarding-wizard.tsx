@@ -18,9 +18,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-import { useAuthUser, useFirestore } from '@/firebase/provider';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const step1Schema = z.object({
@@ -48,9 +46,8 @@ export function OnboardingWizard() {
   const [formData, setFormData] = useState<Partial<Step1Data & Step2Data>>({});
   
   const router = useRouter();
-  const auth = useAuthUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
+  const supabase = createClient();
 
   const step1Form = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
@@ -87,48 +84,44 @@ export function OnboardingWizard() {
 
   const handleFinalSubmit = async () => {
     setIsLoading(true);
-    if (!auth || !firestore) {
-        toast({
-            variant: "destructive",
-            title: "Firebase not initialized",
-            description: "Please try again later.",
-        });
-        setIsLoading(false);
-        return;
-    }
-    
     const finalData = formData as Step1Data & Step2Data;
 
     try {
-        // 1. Create user in Firebase Auth
-        const userCredential = await createUserWithEmailAndPassword(auth, finalData.email, finalData.password);
-        const user = userCredential.user;
+      // 1. Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: finalData.email,
+        password: finalData.password,
+      });
 
-        // 2. Save user profile to Firestore
-        const userDocRef = doc(firestore, 'users', user.uid);
-        await setDoc(userDocRef, {
-            uid: user.uid,
-            email: finalData.email,
-            businessName: finalData.businessName,
-            businessContext: finalData.businessContext,
-            whatsappNumber: finalData.whatsappNumber,
-            facebookPage: finalData.facebookPage || '',
-            facebookPageId: finalData.facebookPageId || '',
-            instagramHandle: finalData.instagramHandle || '',
-            createdAt: serverTimestamp(),
-        });
-        
-        // Don't need to handle features yet as they are not stored in the DB
-        setStep(4);
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('User creation failed.');
+
+      const user = authData.user;
+
+      // 2. Save user profile to Supabase
+      const { error: dbError } = await supabase.from('users').insert({
+        id: user.id,
+        email: finalData.email,
+        business_name: finalData.businessName,
+        business_context: finalData.businessContext,
+        whatsapp_number: finalData.whatsappNumber,
+        facebook_page_url: finalData.facebookPage || '',
+        facebook_page_id: finalData.facebookPageId || '',
+        instagram_handle: finalData.instagramHandle || '',
+      });
+
+      if (dbError) throw dbError;
+
+      setStep(4);
     } catch (error: any) {
-        console.error("Onboarding error:", error);
-        toast({
-            variant: "destructive",
-            title: "Onboarding Failed",
-            description: error.message || "An unexpected error occurred. Please try again.",
-        });
+      console.error("Onboarding error:", error);
+      toast({
+        variant: "destructive",
+        title: "Onboarding Failed",
+        description: error.message || "An unexpected error occurred. Please try again.",
+      });
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
