@@ -137,7 +137,7 @@ export function LandingPage() {
                                 </li>
                             </ul>
                             <Button className="w-full" size="lg" asChild>
-                                <Link href="/#">Become a Launch Partner</Link>
+                                <Link href="/signup">Become a Launch Partner</Link>
                             </Button>
                         </CardContent>
                     </Card>
