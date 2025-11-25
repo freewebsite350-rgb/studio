@@ -10,7 +10,10 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Bot, Camera, Package, BarChart2, LayoutDashboard, LifeBuoy, Cog, Code, ShoppingCart, Shield } from 'lucide-react';
+import { 
+  Bot, Camera, Package, BarChart2, LayoutDashboard, 
+  LifeBuoy, Cog, Code, ShoppingCart, Shield 
+} from 'lucide-react';
 import { AppConfig } from '@/lib/app-config';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,13 +36,15 @@ export function AppSidebar() {
           </Link>
         </div>
       </SidebarHeader>
+
       <SidebarContent>
         <SidebarMenu>
-           <SidebarMenuItem>
+
+          {/* DASHBOARD */}
+          <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               isActive={pathname === '/dashboard'}
-              tooltip={{ children: 'Dashboard' }}
             >
               <Link href="/dashboard">
                 <LayoutDashboard />
@@ -47,134 +52,146 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           <SidebarMenuItem>
+
+          {/* ANALYTICS */}
+          <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/analytics'}
-              tooltip={{ children: 'Analytics' }}
+              isActive={pathname === '/dashboard/analytics'}
             >
-              <Link href="/analytics">
+              <Link href="/dashboard/analytics">
                 <BarChart2 />
                 <span>Analytics</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           <SidebarMenuItem>
+
+          {/* PRODUCTS */}
+          <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/products'}
-              tooltip={{ children: 'Products' }}
+              isActive={pathname === '/dashboard/products'}
             >
-              <Link href="/products">
+              <Link href="/dashboard/products">
                 <ShoppingCart />
                 <span>Products</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* RETURNS */}
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/returns'}
-              tooltip={{ children: 'Returns' }}
+              isActive={pathname === '/dashboard/returns'}
             >
-              <Link href="/returns">
+              <Link href="/dashboard/returns">
                 <Package />
                 <span>Returns</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* VISUAL SEARCH */}
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/visual-search'}
-              tooltip={{ children: 'Visual Search' }}
+              isActive={pathname === '/dashboard/visual-search'}
             >
-              <Link href="/visual-search">
+              <Link href="/dashboard/visual-search">
                 <Camera />
                 <span>Visual Search</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* POLICY AI */}
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/policy-ai'}
-              tooltip={{ children: 'Policy AI' }}
+              isActive={pathname === '/dashboard/policy-ai'}
             >
-              <Link href="/policy-ai">
+              <Link href="/dashboard/policy-ai">
                 <Bot />
                 <span>Policy AI</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           <SidebarMenuItem>
+
+          {/* SUPPORT AI */}
+          <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/support-ai'}
-              tooltip={{ children: 'Support AI' }}
+              isActive={pathname === '/dashboard/support-ai'}
             >
-              <Link href="/support-ai">
+              <Link href="/dashboard/support-ai">
                 <LifeBuoy />
                 <span>Support AI</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* WEBSITE INTEGRATION */}
           <SidebarMenuItem>
             <SidebarMenuButton
-                asChild
-                isActive={pathname === '/website-integration'}
-                tooltip={{ children: 'Website Integration' }}
+              asChild
+              isActive={pathname === '/dashboard/website-integration'}
             >
-                <Link href="/website-integration">
-                    <Code />
-                    <span>Website</span>
-                </Link>
+              <Link href="/dashboard/website-integration">
+                <Code />
+                <span>Website</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           <SidebarMenuItem>
+
+          {/* SETTINGS */}
+          <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/settings'}
-              tooltip={{ children: 'Settings' }}
+              isActive={pathname === '/dashboard/settings'}
             >
-              <Link href="/settings">
+              <Link href="/dashboard/settings">
                 <Cog />
                 <span>Settings</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* AI SETTINGS */}
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/ai-settings'}
-              tooltip={{ children: 'AI Settings' }}
+              isActive={pathname === '/dashboard/ai-settings'}
             >
-              <Link href="/ai-settings">
+              <Link href="/dashboard/ai-settings">
                 <Bot />
                 <span>AI Settings</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* ADMIN */}
           {isAdmin && (
             <SidebarMenuItem>
-                <SidebarMenuButton
+              <SidebarMenuButton
                 asChild
                 isActive={pathname === '/admin'}
-                tooltip={{ children: 'Admin' }}
-                >
+              >
                 <Link href="/admin">
-                    <Shield />
-                    <span>Admin</span>
+                  <Shield />
+                  <span>Admin</span>
                 </Link>
-                </SidebarMenuButton>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+
         </SidebarMenu>
       </SidebarContent>
+
       <SidebarFooter>
-         <Button variant="outline" asChild>
-            <Link href="/">Back to Home</Link>
-         </Button>
+        <Button variant="outline" asChild>
+          <Link href="/">Back to Home</Link>
+        </Button>
       </SidebarFooter>
     </>
   );

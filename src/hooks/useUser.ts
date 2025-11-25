@@ -1,35 +1,34 @@
+// src/hooks/useUser.ts
+'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
-
-type UserRole = 'admin' | 'client' | null;
-
-interface AuthState {
-  isAuthenticated: boolean;
-  role: UserRole;
-  user: User | null;
-}
+import { supabase } from '@/lib/supabase/client';
 
 export function useUser() {
-  const supabase = createClient();
-  const [user, setUser] = useState<AuthState>({ isAuthenticated: false, role: null, user: null });
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        setUser({
-          isAuthenticated: true,
-          role: session.user.user_metadata.role || null,
-          user: session.user,
-        });
-      } else {
-        setUser({ isAuthenticated: false, role: null, user: null });
-      }
+    // Initial check
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+    };
+
+    getUser();
+
+    // Subscription to auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+    return () => {
+      subscription?.unsubscribe?.();
+    };
+  }, []);
 
   return user;
 }

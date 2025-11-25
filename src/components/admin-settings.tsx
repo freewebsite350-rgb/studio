@@ -1,141 +1,111 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
-import { Textarea } from './ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
-import { doc, onSnapshot, setDoc, serverTimestamp, DocumentData } from 'firebase/firestore';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { supabase } from '@/lib/supabase/client';
 
-const settingsSchema = z.object({
-    adminBusinessContext: z.string().min(20, 'Please provide some context for the support AI.'),
-});
-
-type SettingsFormData = z.infer<typeof settingsSchema>;
-
-const ADMIN_CONFIG_DOC_ID = 'app_configuration';
-const ADMIN_CONTEXT_COLLECTION = 'admin';
+interface AdminSettings {
+  supportAIEnabled: boolean;
+  greetingMessage: string;
+}
 
 export function AdminSettings() {
   const { toast } = useToast();
-  const firestore = useFirestore();
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [settings, setSettings] = useState<AdminSettings | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const form = useForm<SettingsFormData>({
-    resolver: zodResolver(settingsSchema),
-    defaultValues: {
-        adminBusinessContext: '',
-    }
-  });
-
+  // Fetch settings on mount
   useEffect(() => {
-    if (firestore) {
-      setIsLoading(true);
-      const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
-      const unsubscribe = onSnapshot(configDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data() as DocumentData;
-          form.reset({
-              adminBusinessContext: data.adminBusinessContext || '',
-          });
-        }
-        setIsLoading(false);
+    fetchSettings();
+
+    // Listen for realtime updates
+    const subscription = supabase
+      .from('admin')
+      .on('UPDATE', payload => {
+        setSettings(payload.new as AdminSettings);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeSubscription(subscription);
+    };
+  }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from<AdminSettings>('admin')
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      setSettings(data || null);
+    } catch (err: any) {
+      toast({
+        title: 'Error fetching settings',
+        variant: 'destructive',
+        description: err.message,
       });
-      return () => unsubscribe();
+    } finally {
+      setLoading(false);
     }
-  }, [firestore, form]);
-
-  const handleSaveChanges = async (data: SettingsFormData) => {
-    if (!firestore) return;
-    
-    // UI is no longer blocked here
-    setIsSaving(true); 
-
-    const configDocRef = doc(firestore, ADMIN_CONTEXT_COLLECTION, ADMIN_CONFIG_DOC_ID);
-    
-    // Don't await the setDoc call
-    setDoc(configDocRef, { 
-        ...data,
-        updatedAt: serverTimestamp() 
-    }, { merge: true })
-    .catch((e) => {
-        console.error(e);
-        toast({
-            variant: "destructive",
-            title: 'Uh oh! Something went wrong.',
-            description: 'Could not save your settings in the background. Please try again.',
-        });
-    });
-
-    // Give optimistic success feedback immediately
-    toast({
-        title: 'Settings Saved!',
-        description: 'The admin support AI has been updated with the new information.',
-    });
-    
-    // It's good practice to briefly show the saving state in UI, even if non-blocking
-    setTimeout(() => {
-        setIsSaving(false);
-        form.reset(data); // Mark the form as no longer dirty
-    }, 500); 
   };
 
-  if (isLoading) {
-    return (
-        <Card className="w-full shadow-lg">
-            <CardHeader>
-                <CardTitle>Support AI Settings</CardTitle>
-                <CardDescription>Manage the business context your Support AI uses to answer questions about your product.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-            </CardContent>
-        </Card>
-    );
-  }
+  const updateSettings = async () => {
+    if (!settings) return;
+    try {
+      const { error } = await supabase
+        .from('admin')
+        .update(settings)
+        .eq('id', 1); // assuming single row with id=1
+
+      if (error) throw error;
+
+      toast({ title: 'Settings updated successfully' });
+    } catch (err: any) {
+      toast({
+        title: 'Error updating settings',
+        variant: 'destructive',
+        description: err.message,
+      });
+    }
+  };
+
+  if (loading) return <p>Loading...</p>;
 
   return (
-    <Card className="w-full shadow-lg">
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSaveChanges)}>
-                <CardHeader>
-                    <CardTitle>Support AI Settings</CardTitle>
-                    <CardDescription>
-                        This is the information your internal Support AI will use to answer your questions about how Retail-Assist 3.0 works.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <FormField control={form.control} name="adminBusinessContext" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Support AI Business Context</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                    placeholder="Paste the product description, features, pricing, and any other text you want the support AI to know."
-                                    className="min-h-[300px] font-mono text-xs"
-                                    {...field}
-                                />
-                            </FormControl>
-                             <FormMessage />
-                        </FormItem>
-                    )} />
-                </CardContent>
-                <CardFooter>
-                    <Button type="submit" className="w-full" disabled={isSaving || !form.formState.isDirty}>
-                    {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Changes...</> : 'Save Changes'}
-                    </Button>
-                </CardFooter>
-            </form>
-        </Form>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Admin Settings</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Support AI Enabled</label>
+          <input
+            type="checkbox"
+            checked={settings?.supportAIEnabled}
+            onChange={e =>
+              setSettings({ ...settings!, supportAIEnabled: e.target.checked })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Greeting Message</label>
+          <Input
+            value={settings?.greetingMessage || ''}
+            onChange={e =>
+              setSettings({ ...settings!, greetingMessage: e.target.value })
+            }
+          />
+        </div>
+
+        <Button onClick={updateSettings}>Save Changes</Button>
+      </CardContent>
     </Card>
   );
 }

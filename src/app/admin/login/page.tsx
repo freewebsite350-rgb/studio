@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AppConfig } from '@/lib/app-config';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,21 +16,24 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
     if (error) {
-      setError(error.message);
-    } else if (data.user?.user_metadata.role !== 'admin') {
-      setError('You are not authorized to access this page.');
-    } else {
-      router.push('/admin');
+      return setError(error.message);
     }
+
+    if (data.user?.user_metadata.role !== "admin") {
+      return setError("You are not authorized to access this page.");
+    }
+
+    router.push("/admin");
   };
 
   return (
@@ -41,46 +44,41 @@ export default function AdminLoginPage() {
             <Shield className="h-8 w-8" />
             <span>{AppConfig.appName}: Admin</span>
           </CardTitle>
-          <CardDescription>
-            Enter your credentials to access the admin dashboard.
-          </CardDescription>
+          <CardDescription>Admin login access only.</CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleLogin}>
             <div className="grid gap-4">
+
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label>Email</Label>
                 <Input
-                  id="email"
                   type="email"
-                  placeholder="m@example.com"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
+
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                </div>
+                <Label>Password</Label>
                 <Input
-                  id="password"
                   type="password"
-                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
               </div>
+
               {error && <p className="text-red-500 text-sm">{error}</p>}
-              <Button type="submit" className="w-full">
-                Login
-              </Button>
+
+              <Button type="submit" className="w-full">Login</Button>
             </div>
           </form>
+
           <div className="mt-4 text-center text-sm">
-            <Link href="/" className="underline">
-              Back to the main application
-            </Link>
+            <Link href="/" className="underline">Back to main site</Link>
           </div>
         </CardContent>
       </Card>
