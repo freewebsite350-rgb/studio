@@ -1,33 +1,18 @@
-// src/hooks/useUser.ts
-'use client';
-
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export function useUser() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Initial check
+    const supabase = createClient();
+
     const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user ?? null);
     };
 
     getUser();
-
-    // Subscription to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      subscription?.unsubscribe?.();
-    };
   }, []);
 
   return user;

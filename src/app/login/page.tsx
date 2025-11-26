@@ -1,120 +1,176 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { supabase } from '@/lib/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address.'),
-  password: z.string().min(1, 'Password is required.'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
-
-export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+export default function LoginSignupPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [facebookPageId, setFacebookPageId] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  
   const router = useRouter();
+  const supabase = createClient();
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
-  });
+  // LOGIN
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  const handleLogin = async (data: LoginFormData) => {
-    setIsLoading(true);
-    try {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
+    if (error) return setError(error.message);
 
-      if (error) throw error;
+    router.push('/dashboard');
+  };
 
-      toast({ title: 'Logged in successfully', variant: 'default' });
+  // SIGN UP
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      // role-based redirect
-      const role = authData.user.user_metadata?.role;
-      if (role === 'admin') router.push('/admin/dashboard');
-      else router.push('/client/dashboard');
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          role: 'client',
+          business_name: businessName,
+        },
+      },
+    });
 
-    } catch (err: any) {
-      toast({
-        title: 'Login Failed',
-        variant: 'destructive',
-        description: err.message || 'Unexpected error occurred.',
-      });
-    } finally {
-      setIsLoading(false);
+    if (error) return setError(error.message);
+
+    if (data?.user) {
+      const { error: insertError } = await supabase.from('users').insert([
+        {
+          id: data.user.id,
+          facebook_page_id: facebookPageId,
+        },
+      ]);
+
+      if (insertError) return setError(insertError.message);
     }
+
+    router.push('/dashboard');
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-background">
-      <Card className="w-full max-w-md shadow-lg">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleLogin)}>
+    <main className="flex min-h-screen flex-col items-center justify-center p-4">
+      <Tabs defaultValue="login" className="w-full max-w-sm">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="login">Login</TabsTrigger>
+          <TabsTrigger value="signup">Sign Up</TabsTrigger>
+        </TabsList>
+
+        {/* LOGIN */}
+        <TabsContent value="login">
+          <Card>
             <CardHeader>
               <CardTitle>Login</CardTitle>
-              <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
+              <CardDescription>Enter your email to log in.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <CardContent>
+              <form onSubmit={handleLogin} className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Password</Label>
+                  <Input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+
+                <Button type="submit" className="w-full">Login</Button>
+              </form>
+
+              <div className="mt-4 text-center text-sm">
+                <Link href="/" className="underline">Back to Home</Link>
+              </div>
             </CardContent>
-            <CardFooter className="flex-col gap-4 items-stretch">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Logging in...</> : 'Login'}
-              </Button>
+          </Card>
+        </TabsContent>
 
-              <p className="text-center text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <Button variant="link" className="p-0 h-auto" asChild>
-                  <Link href="/onboarding">Sign up</Link>
-                </Button>
-              </p>
+        {/* SIGN UP */}
+        <TabsContent value="signup">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sign Up</CardTitle>
+              <CardDescription>Create your account.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSignUp} className="grid gap-4">
 
-              <Button variant="link" className="p-0 h-auto" asChild>
-                <Link href="/admin/login">Admin Login</Link>
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
-      </Card>
-    </div>
+                <div className="grid gap-2">
+                  <Label>Business Name</Label>
+                  <Input
+                    required
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Facebook Page ID</Label>
+                  <Input
+                    required
+                    value={facebookPageId}
+                    onChange={(e) => setFacebookPageId(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Password</Label>
+                  <Input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+
+                <Button type="submit" className="w-full">Create Account</Button>
+              </form>
+
+              <div className="mt-4 text-center text-sm">
+                <Link href="/" className="underline">Back to Home</Link>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+      </Tabs>
+    </main>
   );
 }
