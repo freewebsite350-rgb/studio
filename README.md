@@ -48,3 +48,5 @@ This project is a multi-tenant AI automation platform that allows business owner
 
 ## 📁 Standard Folder Structure (Manus must enforce this)
 
+src/ ├── app/ │    ├── (auth)/ │    │      ├── login/page.tsx │    │      ├── register/page.tsx │    ├── dashboard/ │    │      ├── page.tsx │    │      ├── ai-settings/page.tsx │    ├── api/ │    │      ├── webhook/ │    │      │        ├── route.ts        # Messenger webhook handler │    │      ├── auth/ │    │      │        ├── route.ts        # Supabase RLS auth endpoints │    ├── page.tsx                         # Landing Page │ ├── components/ │    ├── landing-page.tsx │    ├── ui/ (shadcn components) │ ├── lib/ │    ├── supabase.ts                      # Supabase client (server & client versions) │    ├── auth.ts                          # withAuth helper │ ├── ai/ │    ├── flows/ │    │      ├── policy-qa-flow.ts │ ├── hooks/ │     ├── withAuth.ts │ ├── env │    ├── .env.local.example
+
